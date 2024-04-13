@@ -8,14 +8,14 @@ Plugin to be able to used.
  Right now they offer a free use for services and go to [4Players GmbH](https://www.4players.io/odin/faq/) for FAQ.
 
  # CRYENGINE 
- Cryengine is made and owned by Crytek 
+ Cryengine is made and owned by [Crytek](https://www.cryengine.com/) 
 
 
 # How to use plugin 
 
-Right now `CryOdin` doesn't use CryAudio System ( Cryengine audio system ). Instead it uses Miniaudio [https://miniaud.io/index.html]. This is too much of issue but, it does mean there's a lot to know for you end-user in how to do Audio programming. Right the API of `CryOdin` handles most use cases of this. So it shouldn't be problem to plug in the CryOdin and get striaght into it.
+Right now `CryOdin` doesn't use CryAudio System ( Cryengine audio system ). Instead it uses [Miniaudio](https://miniaud.io/index.html). This is too much of issue but, it does mean there's a lot to know for you end-user in how to do Audio programming. Right the API of `CryOdin` handles most use cases of this. So it shouldn't be problem to plug in the CryOdin and get striaght into it.
 
-If you want to build `CryOdin` on you're own you'll need to have Odin SDK from [https://github.com/4Players/odin-sdk] and create a folder in `Cryengine SDKs` directory called  `Odin`. Once done you'll need to add `CryOdin` plugin into the `CryPlugins folders`. From there you'll add this line of code into the CMakeList.txt that is located in the `CryPlugins folder`.
+If you want to build `CryOdin` on you're own you'll need to have Odin SDK from [OdinSDK](https://github.com/4Players/odin-sdk) and create a folder in `Cryengine SDKs` directory called  `Odin`. Once done you'll need to add `CryOdin` plugin into the `CryPlugins folders`. From there you'll add this line of code into the CMakeList.txt that is located in the `CryPlugins folder`.
 
 
 ```CMake
