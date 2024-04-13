@@ -80,4 +80,46 @@ First we get the plugin
 
 auto pOdinPlugin = gEnv->pSystem->GetIPluginManager()->QueryPlugin<Cry::Odin::ICryOdinPlugin>();
 ```
-The code above allows us to get CryOdin via Cryengine Plugin Manager 
+The code above allows us to get CryOdin via Cryengine Plugin Manager.
+
+Next we setup Audio Processing Module (APM) `APM Config`, this config just Odin what features to use when a player is using their mic
+```c++
+OdinApmConfig apmConfig{};
+apmConfig.voice_activity_detection = true;
+apmConfig.voice_activity_detection_attack_probability = 0.9;
+apmConfig.voice_activity_detection_release_probability = 0.8;
+apmConfig.volume_gate = false;
+apmConfig.volume_gate_attack_loudness = -30;
+apmConfig.volume_gate_release_loudness = -40;
+apmConfig.echo_canceller = true;
+apmConfig.high_pass_filter = false;
+apmConfig.pre_amplifier = false;
+apmConfig.noise_suppression_level = OdinNoiseSuppressionLevel_Moderate;
+apmConfig.transient_suppressor = false;
+apmConfig.gain_controller = true;
+```
+From Odin Docs:
+
+#### Voice Activity Detection (VAD)
+When enabled, ODIN will analyze the audio input signal using smart voice detection algorithm to determine the presence of speech. You can define both the probability required to start and stop transmitting.
+
+#### Input Volume Gate
+When enabled, the volume gate will measure the volume of the input audio signal, thus deciding when a user is speaking loud enough to transmit voice data. You can define both the root mean square power (dBFS) for when the gate should engage and disengage.
+
+#### Acoustic Echo Cancellation (AEC)
+When enabled the echo canceller will try to subtract echoes, reverberation, and unwanted added sounds from the audio input signal. Note, that you need to process the reverse audio stream, also known as the loopback data to be used in the ODIN echo canceller.
+
+#### Noise Suppression
+When enbabled, the noise suppressor will remove distracting background noise from the input audio signal. You can control the aggressiveness of the suppression. Increasing the level will reduce the noise level at the expense of a higher speech distortion.
+
+#### High-Pass Filter (HPF)
+When enabled, the high-pass filter will remove low-frequency content from the input audio signal, thus making it sound cleaner and more focused.
+
+#### Preamplifier
+When enabled, the preamplifier will boost the signal of sensitive microphones by taking really weak audio signals and making them louder.
+
+#### Transient Suppression
+When enabled, the transient suppressor will try to detect and attenuate keyboard clicks.
+
+#### Automatic Gain Control (AGC)
+When enabled, the gain controller will bring the input audio signal to an appropriate range when it’s either too loud or too quiet.
