@@ -17,7 +17,7 @@ Right now `CryOdin` doesn't use CryAudio System ( Cryengine audio system ). Inst
 
 If you want to build `CryOdin` on you're own you'll need to have Odin SDK from [OdinSDK](https://github.com/4Players/odin-sdk) and create a folder in `Cryengine SDKs` directory called  `Odin`. Once done you'll need to add `CryOdin` plugin into the `CryPlugins folders`. From there you'll add this line of code into the CMakeList.txt that is located in the `CryPlugins folder`.
 
-
+### CMakeList.txt located in CryPlugins Folder 
 ```CMake
 # Mandatory plugin, contains entities required by the engine
 if (OPTION_ENGINE)
