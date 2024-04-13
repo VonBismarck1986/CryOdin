@@ -65,3 +65,19 @@ Once add you should be run your project with CryOdin loaded in.
 
 ### Using Binary instead of building.
 If you just want to use the plugin without building it you'll still need follow the directions above but, instead of running `cry_cmake.exe` you can just build and run your project like you'll normally do. Just make sure to go to [Release](https://github.com/VonBismarck1986/CryOdin/releases/tag/0.0.1) and download the Binary - CryOdin.dll and put inside of `Cryengine/bin/win_x64` folder
+
+
+
+# CryOdin API
+Now that project is setup and CryOdin is loaded how do we use it? 
+
+#### Initializing plugin
+First we get the plugin
+```c++
+// Headers to add
+#include "ICryOdin.h"
+//
+
+auto pOdinPlugin = gEnv->pSystem->GetIPluginManager()->QueryPlugin<Cry::Odin::ICryOdinPlugin>();
+```
+The code above allows us to get CryOdin via Cryengine Plugin Manager 
