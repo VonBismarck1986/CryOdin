@@ -4,6 +4,9 @@
 
 #include "Plugin.h"
 
+#include <cstdlib> // maybe?
+
+
 #define DEFAULT_ROOM "Cryengine-Room"
 
 namespace Cry
@@ -142,7 +145,6 @@ namespace Cry
 		{
 
 			//TODO:: Clean up below..
-
 			OdinReturnCode error;
 
 			m_room = odin_room_create();
@@ -161,6 +163,7 @@ namespace Cry
 			m_pMainClient = pEntity;
 			m_pMainClient.roomToken = GenerateRoomToken(DEFAULT_ROOM, userID);
 			m_pMainClient.userName = userName.c_str();
+			//m_pMainClient.OdinID = pEntity.pUserEntity->GetId();
 
 
 			error = odin_room_update_peer_user_data(m_room, (uint8_t*)m_pMainClient.userName, strlen(m_pMainClient.userName));
@@ -280,10 +283,12 @@ namespace Cry
 
 				// Print information about the peer to the console
 				ODIN_LOG("Peer(%" PRIu64 ") joined with user ID '%s'\n", peer_id, user_id);
-
 				// Print information about the peers user data to the console
 				ODIN_LOG("Peer(%" PRIu64 ") has user data with %zu bytes\n", peer_id, peer_user_data_len);
-				IEntity* temp = gEnv->pEntitySystem->GetEntity(peer_id);
+
+				// convert user_id to EntityID
+				unsigned int var = std::atoi(user_id);
+				IEntity* temp = gEnv->pEntitySystem->GetEntity(var);
 
 				ICryOdinUser newUser(std::move(temp), peer_id, user_id);
 
@@ -325,11 +330,16 @@ namespace Cry
 				uint64_t peer_id = event->media_added.peer_id;
 				uint16_t media_id = get_media_id_from_handle(event->media_added.media_handle);
 
-				// Add the new output stream to our global list for later playback mixing
-				m_pAudioSystem->AddSoundSource(event->media_added.media_handle, peer_id, room);
+				auto it = m_usersMap.find(peer_id);
+				if (it != m_usersMap.end())
+				{
+					//it->second.OdinID
+					// Add the new output stream to our global list for later playback mixing
+					m_pAudioSystem->AddSoundSource(event->media_added.media_handle, it->second.OdinID, room);
 
-				// Print information about the media to the console
-				ODIN_LOG("Media(%d) added by Peer(%" PRIu64 ")\n", media_id, peer_id);
+					// Print information about the media to the console
+					ODIN_LOG("Media(%d) added by Peer(%" PRIu64 ")\n", media_id, it->second.OdinID);
+				}
 			}
 			break;
 			case OdinEvent_MediaRemoved:
