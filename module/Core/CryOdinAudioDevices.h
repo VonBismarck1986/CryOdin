@@ -70,7 +70,7 @@ namespace Cry
 
 			
 			void GetAudioDevices(SCryOdinAudioDevicesConfig* devices);
-
+			void FreeAudioDevices(SCryOdinAudioDevicesConfig* devices);
 
 
 		private:

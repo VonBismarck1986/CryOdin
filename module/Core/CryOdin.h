@@ -90,7 +90,8 @@ namespace Cry
 
 			CCryOdinAudioSystem* m_pAudioSystem = nullptr;
 
-			const char* user_data = "{\"name\":\"Cryengine - Client\"}";
+
+			std::unordered_map<uint64_t, ICryOdinUser> m_usersMap;
 		};
 	}
 }

@@ -30,6 +30,7 @@ namespace Cry
 				, isMuted(false)
 				, inputStream(0)
 				, roomToken(room_token)
+				, apmConfig(OdinApmConfig())
 			{
 			}
 
@@ -41,6 +42,7 @@ namespace Cry
 				, isMuted(false)
 				, inputStream(0)
 				, roomToken(nullptr)
+				, apmConfig(OdinApmConfig())
 			{
 			}
 
@@ -52,6 +54,7 @@ namespace Cry
 				, isMuted(false)
 				, inputStream(0)
 				, roomToken(nullptr)
+				, apmConfig(OdinApmConfig())
 			{
 			}
 

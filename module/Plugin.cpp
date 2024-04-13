@@ -30,6 +30,7 @@ Cry::Odin::CCryOdinPlugin::~CCryOdinPlugin()
 	if (m_pOdin)
 	{
 		m_pOdin->Shutdown();
+
 		m_pOdin.release();
 	}
 }

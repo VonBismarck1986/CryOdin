@@ -1,7 +1,8 @@
 #include "StdAfx.h"
 #include "CryOdin.h"
-
 #include "CryOdinAudioDevices.h"
+
+#include "Plugin.h"
 
 #define DEFAULT_ROOM "Cryengine-Room"
 
@@ -31,12 +32,6 @@ namespace Cry
 
 		CCryOdin::~CCryOdin()
 		{
-			if (m_pAudioSystem)
-			{
-				m_pAudioSystem->Shutdown();
-				SAFE_DELETE(m_pAudioSystem);
-			}
-
 			Shutdown();
 		}
 
@@ -73,8 +68,21 @@ namespace Cry
 
 		void CCryOdin::Shutdown()
 		{
+			if (m_pAudioSystem)
+			{
+				m_pAudioSystem->Shutdown();
+				SAFE_DELETE(m_pAudioSystem);
+			}
+
+			odin_room_close(m_room);
 			odin_room_destroy(m_room);
+
 			odin_shutdown();
+
+			if (g_pOdin)
+			{
+				g_pOdin.release();
+			}
 		}
 
 		void CCryOdin::SetAccessKey(const char* accessKey)
@@ -275,11 +283,18 @@ namespace Cry
 
 				// Print information about the peers user data to the console
 				ODIN_LOG("Peer(%" PRIu64 ") has user data with %zu bytes\n", peer_id, peer_user_data_len);
+				IEntity* temp = gEnv->pEntitySystem->GetEntity(peer_id);
+
+				ICryOdinUser newUser(std::move(temp), peer_id, user_id);
+
+				m_usersMap.emplace(std::make_pair(peer_id,newUser)); // Probably just use emplace and allow std::map make the key
+
 			}
 			break;
 			case OdinEvent_PeerLeft:
 			{
-				//uint64_t peer_id = event->peer_left.peer_id;
+				uint64_t peer_id = event->peer_left.peer_id;
+				m_usersMap.erase(peer_id);
 				//
 				//// Walk through our global list of output streams and destroy the remaining ones owned by the peer just to be sure
 				//for (size_t i = 0; i < output_streams_len; ++i)
@@ -351,21 +366,46 @@ namespace Cry
 
 		const char* CCryOdin::get_name_from_connection_state_change_reason(OdinRoomConnectionStateChangeReason reason)
 		{
-			return nullptr;
+			switch (reason)
+			{
+			case OdinRoomConnectionStateChangeReason_ClientRequested:
+				return "client request";
+			case OdinRoomConnectionStateChangeReason_ServerRequested:
+				return "server request";
+			case OdinRoomConnectionStateChangeReason_ConnectionLost:
+				return "timeout";
+			default:
+				return "unknown";
+			}
 		}
 
 		const char* CCryOdin::get_name_from_connection_state(OdinRoomConnectionState state)
 		{
-			return nullptr;
+			switch (state)
+			{
+			case OdinRoomConnectionState_Connecting:
+				return "connecting";
+			case OdinRoomConnectionState_Connected:
+				return "connected";
+			case OdinRoomConnectionState_Disconnecting:
+				return "disconnecting";
+			case OdinRoomConnectionState_Disconnected:
+				return "disconnected";
+			default:
+				return "unknown";
+			}
 		}
 
 		uint16_t CCryOdin::get_media_id_from_handle(OdinMediaStreamHandle handle)
 		{
-			return 0;
+			uint16_t media_id;
+			int error = odin_media_stream_media_id(handle, &media_id);
+			return odin_is_error(error) ? 0 : media_id;
 		}
 
 		void CCryOdin::OnUpdate()
 		{
+			m_pAudioSystem->OnUpdate(0.f); // TODO:: Change this 0.f to actual vaule when needed
 		}
 	}
 }

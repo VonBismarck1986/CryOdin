@@ -45,19 +45,19 @@ namespace Cry
 			// First we setup miniaudio resources before launching the engine
 			ma_result result;
 
-			ma_resource_manager_config resourceManagerConfig;
-			resourceManagerConfig = ma_resource_manager_config_init();
-			resourceManagerConfig.decodedFormat = ma_format_f32;
-			resourceManagerConfig.decodedChannels = 0;
-			resourceManagerConfig.decodedSampleRate = 48000;
-			resourceManagerConfig.allocationCallbacks = MemoryCallback;
-
-			result = ma_resource_manager_init(&resourceManagerConfig, &m_resourceManager);
-			if (result != MA_SUCCESS)
-			{
-				CryWarning(VALIDATOR_MODULE_AUDIO, VALIDATOR_ASSERT, "Unable to start Miniaudio resource manager retart Game!");
-				return false;
-			}
+			//ma_resource_manager_config resourceManagerConfig;
+			//resourceManagerConfig = ma_resource_manager_config_init();
+			//resourceManagerConfig.decodedFormat = ma_format_f32;
+			//resourceManagerConfig.decodedChannels = 0;
+			//resourceManagerConfig.decodedSampleRate = 48000;
+			//resourceManagerConfig.allocationCallbacks = MemoryCallback;
+			//
+			//result = ma_resource_manager_init(&resourceManagerConfig, &m_resourceManager);
+			//if (result != MA_SUCCESS)
+			//{
+			//	CryWarning(VALIDATOR_MODULE_AUDIO, VALIDATOR_ASSERT, "Unable to start Miniaudio resource manager retart Game!");
+			//	return false;
+			//}
 
 			// Once resource manager is started we get audio devices ready
 
@@ -114,6 +114,25 @@ namespace Cry
 
 		void CCryOdinAudioSystem::Shutdown()
 		{
+			// Sounds, engine, device, others 
+			odin_media_stream_destroy(m_user.inputStream);
+			m_user.inputStream = 0;
+
+			ma_device_uninit(&m_audioDeviceConfig.input);
+			ma_device_uninit(&m_audioDeviceConfig.output);
+
+			FreeAudioDevices(&m_audioDeviceConfig);
+
+			ma_engine_uninit(&m_engine);
+
+			odin_data_source_uninit(&m_odinDataSource);
+
+			if (g_pAudioSystem)
+			{
+				g_pAudioSystem.release();
+			}
+
+			//ma_resource_manager_uninit(&m_resourceManager);
 		}
 
 		void CCryOdinAudioSystem::OnUpdate(float frameTime)
@@ -304,6 +323,22 @@ namespace Cry
 				}
 				ma_context_uninit(&context);
 			}
+		}
+
+		void CCryOdinAudioSystem::FreeAudioDevices(SCryOdinAudioDevicesConfig* devices)
+		{
+			if (devices->output_devices != NULL)
+			{
+				free(devices->output_devices);
+				devices->output_devices = NULL;
+			}
+			devices->output_devices_count = 0;
+			if (devices->input_devices != NULL)
+			{
+				free(devices->input_devices);
+				devices->input_devices = NULL;
+			}
+			devices->input_devices_count = 0;
 		}
 
 
