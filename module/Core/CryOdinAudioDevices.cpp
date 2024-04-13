@@ -45,19 +45,19 @@ namespace Cry
 			// First we setup miniaudio resources before launching the engine
 			ma_result result;
 
-			//ma_resource_manager_config resourceManagerConfig;
-			//resourceManagerConfig = ma_resource_manager_config_init();
-			//resourceManagerConfig.decodedFormat = ma_format_f32;
-			//resourceManagerConfig.decodedChannels = 0;
-			//resourceManagerConfig.decodedSampleRate = 48000;
-			//resourceManagerConfig.allocationCallbacks = MemoryCallback;
-			//
-			//result = ma_resource_manager_init(&resourceManagerConfig, &m_resourceManager);
-			//if (result != MA_SUCCESS)
-			//{
-			//	CryWarning(VALIDATOR_MODULE_AUDIO, VALIDATOR_ASSERT, "Unable to start Miniaudio resource manager retart Game!");
-			//	return false;
-			//}
+			ma_resource_manager_config resourceManagerConfig;
+			resourceManagerConfig = ma_resource_manager_config_init();
+			resourceManagerConfig.decodedFormat = ma_format_f32;
+			resourceManagerConfig.decodedChannels = 0;
+			resourceManagerConfig.decodedSampleRate = 48000;
+			resourceManagerConfig.allocationCallbacks = MemoryCallback;
+			
+			result = ma_resource_manager_init(&resourceManagerConfig, &m_resourceManager);
+			if (result != MA_SUCCESS)
+			{
+				CryWarning(VALIDATOR_MODULE_AUDIO, VALIDATOR_ASSERT, "Unable to start Miniaudio resource manager retart Game!");
+				return false;
+			}
 
 			// Once resource manager is started we get audio devices ready
 
@@ -99,12 +99,18 @@ namespace Cry
 			config.pDevice = NULL; // Capture device - Speakers
 			config.allocationCallbacks = MemoryCallback;
 			config.pResourceManager = &m_resourceManager;
+			config.listenerCount = 1;
+
 
 			result = ma_engine_init(&config, &m_engine);
 			if (result != MA_SUCCESS) {
 				ODIN_LOG("Failed to initialize the engine.");
 				return false;
 			}
+
+			ma_engine_listener_set_world_up(&m_engine, 0, 0.0f, 0.0f, 1.0f); // double check on this, make sure it's Cryengine world UP position
+			ma_engine_listener_set_direction(&m_engine, 0, 0.0f, 1.0f, 0.0f);
+			ma_engine_listener_set_cone(&m_engine, 0, 10.f, 25.f, 0.25f);
 
 			ma_device_start(&m_audioDeviceConfig.input);
 			ma_device_start(&m_audioDeviceConfig.output);
@@ -127,16 +133,27 @@ namespace Cry
 
 			odin_data_source_uninit(&m_odinDataSource);
 
+			ma_resource_manager_uninit(&m_resourceManager);
+
 			if (g_pAudioSystem)
 			{
 				g_pAudioSystem.release();
 			}
-
-			//ma_resource_manager_uninit(&m_resourceManager);
 		}
 
 		void CCryOdinAudioSystem::OnUpdate(float frameTime)
 		{
+			// We have to make sure current local player listener is being updated might want to change this to its own class... yup sigh
+			if (m_user.pUserEntity != nullptr)
+			{
+				auto playerPos = m_user.pUserEntity->GetWorldPos();
+
+				
+				ma_engine_listener_set_position(&m_engine,0, -playerPos.x, playerPos.z, playerPos.y);
+
+			}
+
+
 			if (m_sounds.empty())
 				return;
 
@@ -224,28 +241,48 @@ namespace Cry
 
 		void CCryOdinAudioSystem::SetListenerPosition(const IEntity& pEntity)
 		{
+			if (pEntity.GetId() != INVALID_ENTITYID)
+			{
+				auto pos = pEntity.GetWorldPos();
+
+				ma_engine_listener_set_position(&m_engine, 0, -pos.x, pos.z, pos.y);
+			}
 		}
 
 		void CCryOdinAudioSystem::SetListenerPosition(const Vec3& position)
 		{
+			ma_engine_listener_set_position(&m_engine, 0, position.x, position.y, position.x);
 		}
 
 		void CCryOdinAudioSystem::SetListenerDirection(const IEntity& pEntity)
 		{
+			if (pEntity.GetId() != INVALID_ENTITYID)
+			{
+				auto posFwd = pEntity.GetForwardDir();
+
+				ma_engine_listener_set_direction(&m_engine, 0, posFwd.x, posFwd.y, posFwd.x);
+			}
 		}
 
 		void CCryOdinAudioSystem::SetListenerDirection(const Vec3& direction)
 		{
+			ma_engine_listener_set_position(&m_engine, 0, direction.x, direction.y, direction.x);
 		}
 
 		Vec3 CCryOdinAudioSystem::GetListenerPosition() const
 		{
-			return Vec3();
+			auto listenPos = ma_engine_listener_get_position(&m_engine, 0);
+			Vec3 position = Vec3(listenPos.x,listenPos.y,listenPos.z);
+
+			return position;
 		}
 
 		Vec3 CCryOdinAudioSystem::GetListenerDirection() const
 		{
-			return Vec3();
+			auto listenDir = ma_engine_listener_get_direction(&m_engine, 0);
+			Vec3 direction = Vec3(listenDir.x, listenDir.y, listenDir.z);
+
+			return direction;
 		}
 
 		float CCryOdinAudioSystem::GetMicVolume() const
@@ -339,6 +376,16 @@ namespace Cry
 				devices->input_devices = NULL;
 			}
 			devices->input_devices_count = 0;
+		}
+
+		void CCryOdinAudioSystem::SetTalking(bool bToggle)
+		{
+
+		}
+
+		void CCryOdinAudioSystem::DebugDraw(float frameTime)
+		{
+
 		}
 
 

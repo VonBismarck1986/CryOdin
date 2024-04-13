@@ -72,11 +72,16 @@ namespace Cry
 			void GetAudioDevices(SCryOdinAudioDevicesConfig* devices);
 			void FreeAudioDevices(SCryOdinAudioDevicesConfig* devices);
 
-
+			void SetTalking(bool bToggle);
 		private:
 			SCryOdinAudioDevicesConfig m_audioDeviceConfig = SCryOdinAudioDevicesConfig();
 			ICryOdinUser m_user;
+
 			std::unordered_map<int, SCryOdinSounds> m_sounds;
+
+
+		public:
+			void DebugDraw(float frameTime);
 		};
 	}
 }
