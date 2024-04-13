@@ -80,6 +80,7 @@ namespace Cry
 
 		public:
 			void OnUpdate();
+	
 
 		private:
 			CryFixedStringT<128> m_AccessKey; // this key is for testing

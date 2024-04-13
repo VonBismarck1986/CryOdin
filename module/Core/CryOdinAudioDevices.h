@@ -63,6 +63,7 @@ namespace Cry
 			virtual bool IsPlayerTalking() override;
 
 			void AddLocalPlayer(const ICryOdinUser& user) { m_user = user; }
+			void AddUser(ICryOdinUser user);
 
 		protected:
 			static void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
@@ -78,8 +79,6 @@ namespace Cry
 			ICryOdinUser m_user;
 
 			std::unordered_map<int, SCryOdinSounds> m_sounds;
-
-
 		public:
 			void DebugDraw(float frameTime);
 		};

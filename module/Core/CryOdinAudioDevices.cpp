@@ -144,15 +144,6 @@ namespace Cry
 		void CCryOdinAudioSystem::OnUpdate(float frameTime)
 		{
 			// We have to make sure current local player listener is being updated might want to change this to its own class... yup sigh
-			if (m_user.pUserEntity != nullptr)
-			{
-				auto playerPos = m_user.pUserEntity->GetWorldPos();
-
-				
-				ma_engine_listener_set_position(&m_engine,0, -playerPos.x, playerPos.z, playerPos.y);
-
-			}
-
 
 			if (m_sounds.empty())
 				return;
@@ -315,6 +306,11 @@ namespace Cry
 		bool CCryOdinAudioSystem::IsPlayerTalking()
 		{
 			return false;
+		}
+
+		void CCryOdinAudioSystem::AddUser(ICryOdinUser user)
+		{
+			
 		}
 
 		void CCryOdinAudioSystem::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
