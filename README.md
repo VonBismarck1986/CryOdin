@@ -11,3 +11,44 @@ Plugin to be able to used.
  Cryengine is made and owned by Crytek 
 
 
+# How to use plugin 
+
+Right now CryOdin doesn't use CryAudio System ( Cryengine audio system ). Instead it uses Miniaudio [https://miniaud.io/index.html]. This is too much of issue but, it does mean there's a lot to know for you end-user in how to do Audio programming. Right the API of CryOdin handles most use cases of this. So it shouldn't be problem to plug in the CryOdin and get striaght into it.
+
+If you want to build CryOdin on you're own you'll need to have Odin SDK from [https://github.com/4Players/odin-sdk] and create a folder in Cryengine SDKs directory called  `Odin`. Once done you'll need to add CryOdin plugin into the CryPlugins folders. From there you'll add this line of code into the CMakeList.txt that is located in the CryPlugins folder.
+
+```CMake
+# Mandatory plugin, contains entities required by the engine
+if (OPTION_ENGINE)
+	add_subdirectory(CryDefaultEntities/Module)
+	
+	add_subdirectory(CryScaleformSchematyc/Module)
+	add_subdirectory(CrySensorSystem/Module)
+endif()
+
+# VR plugins
+if (PLUGIN_VR_OCULUS)
+	add_subdirectory(VR/CryOculusVR/Module)
+endif()
+if (PLUGIN_VR_OPENVR)	
+	add_subdirectory(VR/CryOpenVR/Module)
+endif()	
+if (PLUGIN_VR_OSVR)	
+	add_subdirectory(VR/CryOSVR/Module)
+endif()
+if (PLUGIN_VR_EMULATOR)
+	add_subdirectory(VR/CryEmulatorVR/Module)
+endif()
+
+# GamePlatform: Optional plugin; option PLUGIN_GAMEPLATFORM to enable/disable it resides in its own sub directory
+add_subdirectory(CryGamePlatform)
+
+# Order matters. Node plugin requires knowledge of PLUGIN_GAMEPLATFORM option defined above
+add_subdirectory(CryGamePlatformNodes/Module)
+
+# UQS: Optional plugin; option PLUGIN_CRYUQS to enable/disable it resides in its own sub directory
+add_subdirectory(CryUQS)
+
+add_subdirectory(CryHTTP/Module)
+add_subdirectory(CryOdin/Module) ## this what you add 
+```
