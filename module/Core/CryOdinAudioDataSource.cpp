@@ -56,7 +56,7 @@ namespace Cry
 			cry_odin_source_get_length
 		};
 
-		ma_result odin_data_source_init(OdinDataSourceConfig* soundConfig, OdinDataSouce* pOdinSource)
+		ma_result odin_data_source_init(OdinDataSourceConfig* soundConfig, OdinDataSouce* pOdinSource) // TODO:: REMOVE soundConfig
 		{
 			ma_result result;
 			ma_data_source_config baseConfig;
@@ -68,11 +68,6 @@ namespace Cry
 			if (result != MA_SUCCESS) {
 				return result;
 			}
-
-			g_mSourceConfig.odin_stream[g_mSourceConfig.output_streams_len] = soundConfig->odin_stream_ref;
-			g_mSourceConfig.output_streams_len += 1;
-
-
 			return MA_SUCCESS;
 		}
 

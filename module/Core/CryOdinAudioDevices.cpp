@@ -5,6 +5,9 @@
 
 #include "CryOdin.h"
 
+#include "Plugin.h"
+#include <CryEntitySystem/IEntity.h>
+
 namespace Cry
 {
 	namespace Odin
@@ -88,6 +91,9 @@ namespace Cry
 				return false;
 			}
 
+			OdinDataSourceConfig configOdin;
+			odin_data_source_init(&configOdin, &m_odinDataSource);
+
 			ma_engine_config config;
 			config = ma_engine_config_init();
 			config.pDevice = NULL; // Capture device - Speakers
@@ -112,6 +118,14 @@ namespace Cry
 
 		void CCryOdinAudioSystem::OnUpdate(float frameTime)
 		{
+			if (m_sounds.empty())
+				return;
+
+			for (auto& sound : m_sounds)
+			{
+				sound.second.position = sound.second.pEntity->GetWorldPos(); // Get Pos of Entity
+				ma_sound_set_position(&sound.second.sound, sound.second.position.x, sound.second.position.y, sound.second.position.z); // Now Set it to sound
+			}
 		}
 
 		SCryOdinAudioDevicesConfig CCryOdinAudioSystem::GetAudioDeviceConfig() const
@@ -159,6 +173,30 @@ namespace Cry
 
 		void CCryOdinAudioSystem::AddSoundSource(OdinMediaStreamHandle stream, uint16_t peerID, OdinRoomHandle room)
 		{
+			ma_result result;
+
+			OdinDataSourceConfig config;
+			config.peerID = peerID;
+			config.odin_stream_ref = std::move(stream);
+			config.room[0] = std::move(room); // set to 0 which is 1st
+
+			SCryOdinSounds soundConfig;
+			soundConfig.peerID = peerID;
+			soundConfig.pEntity = gEnv->pEntitySystem->GetEntity(peerID);
+			soundConfig.position = soundConfig.pEntity->GetWorldPos();
+
+			// this is for odin 
+			odin_data_source_update(&config);
+
+			result = ma_sound_init_from_data_source(&m_engine, &m_odinDataSource, 0, NULL, &soundConfig.sound);
+			if (result != MA_SUCCESS)
+			{
+				ODIN_LOG("Failed to initialize the sound.");
+			}
+			ma_sound_set_looping(&soundConfig.sound, MA_TRUE);
+			ma_sound_start(&soundConfig.sound);
+
+			m_sounds.emplace(std::make_pair(peerID, std::move(soundConfig)));
 		}
 
 		void CCryOdinAudioSystem::RemoveSoundSource(OdinMediaStreamHandle stream, uint16_t peerID, OdinRoomHandle room)
@@ -236,6 +274,11 @@ namespace Cry
 				int sample_count = frameCount * 1;
 				odin_audio_push_data(m_user.inputStream, (const float*)pInput, sample_count);
 			}
+			else if (pDevice->type == ma_device_type_playback)
+			{
+				cry_odin_source_read(&m_odinDataSource, pOutput, frameCount, NULL);
+			}
+
 		}
 
 		void CCryOdinAudioSystem::GetAudioDevices(SCryOdinAudioDevicesConfig* devices)

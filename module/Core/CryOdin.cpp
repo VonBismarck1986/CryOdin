@@ -9,6 +9,7 @@ namespace Cry
 {
 	namespace Odin
 	{
+
 		static std::unique_ptr<CCryOdin> g_pOdin;
 
 		CCryOdin::CCryOdin()
@@ -39,11 +40,9 @@ namespace Cry
 			Shutdown();
 		}
 
-		void CCryOdin::Init(const char* user_name, const char* accessKey, OdinApmConfig config)
+		void CCryOdin::Init(const char* accessKey, OdinApmConfig config)
 		{
-			OdinReturnCode error;
 			char gen_access_key[128];
-			char gen_room_token[512];
 
 			m_ApmConfig = config;
 
@@ -64,47 +63,12 @@ namespace Cry
 				ODIN_LOG("Access Key: %s", m_AccessKey.c_str());
 			}
 
-			//TODO:: ( Remove ) This portion isn't really needed it's just for testing, when Init happens Odin should start up then that's it
-			if (m_RoomToken.empty())
-			{
-				OdinTokenGenerator* generator = odin_token_generator_create(m_AccessKey);
-				if (!generator)
-				{
-					ODIN_LOG("Failed to initialize token generator; invalid access key\n");
-				}
-
-				OdinTokenOptions options;
-				options.customer = "<no customer>";
-				options.audience = OdinTokenAudience_Gateway;
-				options.lifetime = 300;
-
-				error = odin_token_generator_create_token_ex(generator, DEFAULT_ROOM, user_name, &options, gen_room_token, sizeof(gen_room_token));
-				if (odin_is_error(error))
-				{
-					print_error(error, "Failed to generate room token");
-					odin_token_generator_destroy(generator);
-				}
-
-				m_RoomToken = gen_room_token;
-				ODIN_LOG("RoomToken: %s", m_RoomToken.c_str());
-				odin_token_generator_destroy(generator);
-			}
-			// end
-
 			OdinAudioStreamConfig audio_output_config;
 			audio_output_config.channel_count = 2;
 			audio_output_config.sample_rate = 48000;
 
 			ODIN_LOG("Initializing ODIN runtime %s\n", ODIN_VERSION);
 			odin_startup_ex(ODIN_VERSION, audio_output_config);
-
-			m_room = odin_room_create();
-
-			error = odin_room_set_event_callback(m_room, handle_odin_event, NULL);
-			if (odin_is_error(error))
-			{
-				print_error(error, "Failed to set room event callback");
-			}
 		}
 
 		void CCryOdin::Shutdown()
@@ -124,7 +88,7 @@ namespace Cry
 			return m_AccessKey.c_str();
 		}
 
-		const char* CCryOdin::GenerateRoomToken(const char* roomID, const char* userName) const
+		const char* CCryOdin::GenerateRoomToken(const char* roomID, const char* user_id) const
 		{
 			OdinReturnCode error;
 
@@ -139,7 +103,7 @@ namespace Cry
 			options.audience = OdinTokenAudience_Gateway;
 			options.lifetime = 300;
 
-			error = odin_token_generator_create_token_ex(generator, roomID, userName, &options, m_RoomToken.m_str, sizeof(m_RoomToken));
+			error = odin_token_generator_create_token_ex(generator, roomID, user_id, &options, m_RoomToken.m_str, sizeof(m_RoomToken));
 			if (odin_is_error(error))
 			{
 				print_error(error, "Failed to generate room token");
@@ -168,15 +132,30 @@ namespace Cry
 
 		void CCryOdin::ConnectUserToOdin(ICryOdinUser& pEntity, const char* user_name)
 		{
-			m_pMainClient = pEntity;
-			m_pMainClient.roomToken = m_RoomToken;
+
+			//TODO:: Clean up below..
 
 			OdinReturnCode error;
 
-			string username = string().Format("{\"name\":\"%s\"}", user_name);
+			m_room = odin_room_create();
+
+			error = odin_room_set_event_callback(m_room, handle_odin_event, NULL);
+			if (odin_is_error(error))
+			{
+				print_error(error, "Failed to set room event callback");
+			}
+
+			string user_id = string().Format("%d", pEntity.pUserEntity->GetId());
+			const char* userID = user_id.c_str();
+
+			string userName = string().Format("{\"name\":\"%s\"}", user_name);
+
+			m_pMainClient = pEntity;
+			m_pMainClient.roomToken = GenerateRoomToken(DEFAULT_ROOM, userID);
+			m_pMainClient.userName = userName.c_str();
 
 
-			error = odin_room_update_peer_user_data(m_room, (const uint8_t*)username.c_str(), sizeof(username.c_str()));
+			error = odin_room_update_peer_user_data(m_room, (uint8_t*)m_pMainClient.userName, strlen(m_pMainClient.userName));
 			if (odin_is_error(error))
 			{
 				print_error(error, "Failed to set user data");
@@ -188,8 +167,8 @@ namespace Cry
 				print_error(error, "Failed to configure room audio processing options");
 			}
 
-			ODIN_LOG("Joining room '%s' using '%s' with token '%s'\n", DEFAULT_ROOM, DEFAULT_ODIN_URL, m_RoomToken.c_str());
-			error = odin_room_join(m_room, DEFAULT_ODIN_URL, m_RoomToken);
+			ODIN_LOG("Joining room '%s' using '%s' with token '%s'\n", DEFAULT_ROOM, DEFAULT_ODIN_URL, m_pMainClient.roomToken.c_str());
+			error = odin_room_join(m_room, DEFAULT_ODIN_URL, m_pMainClient.roomToken.c_str());
 
 			if (odin_is_error(error))
 			{
@@ -207,7 +186,6 @@ namespace Cry
 			{
 				print_error(error, "Failed to add media stream");
 			}
-
 
 			m_pAudioSystem->AddLocalPlayer(m_pMainClient);
 
@@ -333,8 +311,7 @@ namespace Cry
 				uint16_t media_id = get_media_id_from_handle(event->media_added.media_handle);
 
 				// Add the new output stream to our global list for later playback mixing
-				//insert_output_stream(event->media_added.media_handle);
-				//CCryOdinAudioDevice::Get()->AddSoundSource(event->media_added.media_handle, peer_id, room);
+				m_pAudioSystem->AddSoundSource(event->media_added.media_handle, peer_id, room);
 
 				// Print information about the media to the console
 				ODIN_LOG("Media(%d) added by Peer(%" PRIu64 ")\n", media_id, peer_id);

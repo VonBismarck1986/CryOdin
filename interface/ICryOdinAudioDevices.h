@@ -24,12 +24,14 @@ namespace Cry
 		};
 
 		//TODO:: Might remove this
+
 		struct SCryOdinSounds
 		{
+			
 			ma_sound sound; // Miniaudio sound 
 			Vec3     position{ ZERO }; // Cryengine Vec3 of current location of sound
 			uint16_t peerID = 0;
-			IEntity& pEntity; 
+			IEntity* pEntity; 
 		};
 
 		struct ICryOdinAudioSystem

@@ -30,7 +30,7 @@ namespace Cry
 			// Basic setup
 
 			// Start Up Odin, pass Accesskey, OdinApmConfig, and first user
-			virtual void Init(const char* user_name,const char* accessKey, OdinApmConfig config) = 0;
+			virtual void Init(const char* accessKey, OdinApmConfig config) = 0;
 			// Shutdown Odin
 			virtual void Shutdown() = 0;
 
@@ -43,7 +43,8 @@ namespace Cry
 
 			// Generate Room Access Token - you must generate per room creation
 			//@param const char* - RoomID this is a string ( i.e. "DefaultRoom" or "LobbyRoom" etc )
-			virtual const char* GenerateRoomToken(const char* roomID, const char* userName) const = 0;
+			//@param const char* - This Is actually EntityID best to create a string and format with EntityID and pass it with c_str ( example: string userID = string().Format("%s", EntityID);
+			virtual const char* GenerateRoomToken(const char* roomID, const char* user_id) const = 0;
 
 			// Get the current Room Token being used
 			//@return const char of token

@@ -20,7 +20,7 @@ namespace Cry
 
 
 			// Start Up Odin, pass Accesskey and OdinApmConfig
-			virtual void Init(const char* user_name, const char* accessKey, OdinApmConfig config) override;
+			virtual void Init(const char* accessKey, OdinApmConfig config) override;
 			// Shutdown Odin
 			virtual void Shutdown() override;
 
@@ -33,7 +33,7 @@ namespace Cry
 
 			// Generate Room Access Token - you must generate per room creation
 			//@param const char* - RoomID this is a string ( i.e. "DefaultRoom" or "LobbyRoom" etc )
-			virtual const char* GenerateRoomToken(const char* roomID, const char* userName) const override;
+			virtual const char* GenerateRoomToken(const char* roomID, const char* user_id) const override;
 
 			// Get the current Room Token being used
 			//@return const char of token
@@ -89,6 +89,8 @@ namespace Cry
 			ICryOdinUser m_pMainClient;
 
 			CCryOdinAudioSystem* m_pAudioSystem = nullptr;
+
+			const char* user_data = "{\"name\":\"Cryengine - Client\"}";
 		};
 	}
 }
