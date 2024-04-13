@@ -131,4 +131,4 @@ pOdinPlugin->GetOdin()->Init(nullptr, apmConfig);
 ```
 `Init(arg,arg2)` this Init is simple we pass AccessKey (const char*) which you get from Odin or allow the plugin to create one for you and APM config.
 #### Please Note:
-When use the plugin to create a AccessKey this key is limited to 25 users connected and so is the Free Key that Odin will provide from [Here](https://www.4players.io/odin/introduction/access-keys/) it's best use Odin Key Generator since the plugin right will just keep creating a new one each time. ( fixing this soon. )
+When use the plugin to create a Access Key; This key is limited to 25 users connected and so is the Free Access Key that Odin will provide from [Here](https://www.4players.io/odin/introduction/access-keys/) it's best use Odin Key Generator since the plugin right will just keep creating a new one each time. ( fixing this soon. )
