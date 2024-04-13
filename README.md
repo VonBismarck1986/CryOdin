@@ -8,7 +8,7 @@ Plugin to be able to used without issues.
  Right now they offer a free use for services and go to [4Players GmbH](https://www.4players.io/odin/faq/) for FAQ.
 
  # CRYENGINE 
- [CRYENGINE]((https://www.cryengine.com/)) is made and owned by [Crytek](https://www.crytek.com/) 
+ [CRYENGINE](https://www.cryengine.com/) is made and owned by [Crytek](https://www.crytek.com/) 
 
 
 # How to use plugin 
