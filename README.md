@@ -123,3 +123,12 @@ When enabled, the transient suppressor will try to detect and attenuate keyboard
 
 #### Automatic Gain Control (AGC)
 When enabled, the gain controller will bring the input audio signal to an appropriate range when it’s either too loud or too quiet.
+
+Once you setup the APM next start Odin with
+```c++
+/// Continued from above code
+pOdinPlugin->GetOdin()->Init(nullptr, apmConfig);
+```
+`Init(arg,arg2)` this Init is simple we pass AccessKey which you get from Odin or allow the plugin to create one for you and APM config.
+#### Please Note:
+When use the plugin to create a AccessKey this key is limited to 25 users connected and so is the Free Key that Odin will provide from [Here](https://www.4players.io/odin/introduction/access-keys/) it's best use Odin Key Generator since the plugin right will just keep creating a new one each time. ( fixing this soon. )
