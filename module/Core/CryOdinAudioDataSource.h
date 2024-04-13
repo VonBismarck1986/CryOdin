@@ -21,7 +21,7 @@ namespace Cry
 		{
 			OdinMediaStreamHandle odin_stream[2048]; // Why 2048, cause having more then should be fine... I think
 			OdinMediaStreamHandle odin_stream_ref; // This is a ref for passing to odin_stream[2048] 
-			OdinRoomHandle room[DEFAULT_ROOM_COUNT]; // A player can be in more then one room right now 3
+			OdinRoomHandle room[DEFAULT_ROOM_COUNT]; // A player can be in more then one room right now 5
 			size_t output_streams_len = 0; // This is a counter of player, so if no players connect besides main user then 0, when someone connects it goes to 1 and soon on
 			uint16_t peerID; // peer id
 		};

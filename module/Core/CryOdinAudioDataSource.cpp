@@ -23,6 +23,10 @@ namespace Cry
 			return MA_SUCCESS;
 		}
 
+		/*
+		* Below code isn't really need but for vTable 
+		*/
+
 		static ma_result cry_odin_source_seek(ma_data_source* pDataSource, ma_uint64 frameIndex)
 		{
 			// Seek to a specific PCM frame here. Return MA_NOT_IMPLEMENTED if seeking is not supported.

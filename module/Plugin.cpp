@@ -26,13 +26,6 @@ Cry::Odin::CCryOdinPlugin::~CCryOdinPlugin()
 	{
 		gEnv->pSchematyc->GetEnvRegistry().DeregisterPackage(Cry::Odin::CCryOdinPlugin::GetCID());
 	}
-
-	if (m_pOdin)
-	{
-		m_pOdin->Shutdown();
-
-		m_pOdin.release();
-	}
 }
 
 bool Cry::Odin::CCryOdinPlugin::Initialize(SSystemGlobalEnvironment& env, const SSystemInitParams& initParams)
@@ -123,7 +116,13 @@ void Cry::Odin::CCryOdinPlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparm
 		case ESYSTEM_EVENT_FULL_SHUTDOWN:
 		{
 			gEnv->pGameFramework->GetIActionMapManager()->RemoveExtraActionListener(this, m_szMyActionMapName);
-			//CCryOdin::GetOdin()->Shutdown();
+			
+			if (m_pOdin)
+			{
+				m_pOdin->Shutdown();
+
+				m_pOdin.release();
+			}
 		}
 		break;
 	}
