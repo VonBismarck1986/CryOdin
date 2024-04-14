@@ -420,17 +420,6 @@ namespace Cry
 						m_pAudioSystem->RemoveSoundSource(event->media_removed.media_handle, it->second.OdinID, m_room);
 					}
 				}
-				// Find the output stream in our global list and destroy it
-				//for (size_t i = 0; i < output_streams_len; ++i)
-				//{
-				//	if (output_streams[i] == event->media_removed.media_handle)
-				//	{
-				//		remove_output_stream(i);
-				//		break;
-				//	}
-				//}
-				
-				// Print information about the media to the console
 				ODIN_LOG("Media(%d) removed by Peer(%" PRIu64 ")\n", media_id, peer_id);
 			}
 			break;
@@ -439,6 +428,14 @@ namespace Cry
 				uint16_t media_id = get_media_id_from_handle(event->media_active_state_changed.media_handle);
 				uint64_t peer_id = event->media_active_state_changed.peer_id;
 				const char* state = event->media_active_state_changed.active ? "started" : "stopped";
+				bool talking = event->media_active_state_changed.active ? true : false;
+				
+				auto it = m_usersMap.find(peer_id);
+				if (it != m_usersMap.end())
+				{
+					it->second.isTalking = talking;
+					it->second.isMuted = talking;
+				}
 
 				// Print information about the media activity update to the console
 				ODIN_LOG("Peer(%" PRIu64 ") %s sending data on Media(%d)\n", peer_id, state, media_id);
@@ -495,9 +492,13 @@ namespace Cry
 		{
 			if (m_bGamePlayStarted)
 			{
-				//ODIN_LOG("STARTED");
+				m_pAudioSystem->OnUpdate(0.f);
 			}
-			//m_pAudioSystem->OnUpdate(0.f); // TODO:: Change this 0.f to actual vaule when needed
+		}
+
+		void CCryOdin::GetPeers(std::unordered_map<uint64_t, ICryOdinUser>& map) const
+		{
+			map = m_usersMap;
 		}
 	}
 }

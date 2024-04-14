@@ -75,6 +75,8 @@ namespace Cry
 
 			virtual OdinMediaStreamHandle GetDefaultUserInputStream() const override { return m_pMainClient.inputStream; }
 
+			virtual void GetPeers(std::unordered_map<uint64_t, ICryOdinUser>& map) const override;
+
 		protected:
 			static void handle_odin_event(OdinRoomHandle room, const OdinEvent* event, void* data);
 			void odinEvent(OdinRoomHandle room, const OdinEvent* event, void* data);
@@ -98,7 +100,9 @@ namespace Cry
 			CCryOdinAudioSystem* m_pAudioSystem = nullptr;
 
 			// peer_id , ICryOdinUser 
-			std::unordered_map<uint64_t, ICryOdinUser> m_usersMap;
+			std::unordered_map<uint64_t, ICryOdinUser> m_usersMap; // turn into vector?
+
+
 
 			bool m_bGamePlayStarted;
 		};

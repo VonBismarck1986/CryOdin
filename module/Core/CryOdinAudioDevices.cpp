@@ -303,15 +303,20 @@ namespace Cry
 
 		void CCryOdinAudioSystem::MutePlayer(uint16_t peerID)
 		{
+			auto it = m_sounds.find(peerID);
+			if (it != m_sounds.end())
+			{
+
+			}
 		}
 
 		void CCryOdinAudioSystem::SetVolumeForPlayer(uint16_t peerID)
 		{
-		}
-
-		bool CCryOdinAudioSystem::IsPlayerTalking()
-		{
-			return false;
+			auto it = m_sounds.find(peerID);
+			if (it != m_sounds.end())
+			{
+				
+			}
 		}
 
 		void CCryOdinAudioSystem::AddLocalPlayer(const ICryOdinUser& user)
@@ -389,11 +394,6 @@ namespace Cry
 				devices->input_devices = NULL;
 			}
 			devices->input_devices_count = 0;
-		}
-
-		void CCryOdinAudioSystem::SetTalking(bool bToggle)
-		{
-
 		}
 
 		void CCryOdinAudioSystem::DebugDraw(float frameTime)

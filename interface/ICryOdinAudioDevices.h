@@ -90,13 +90,7 @@ namespace Cry
 			virtual float GetSoundVolumeFromPlayer(uint16_t peerID) = 0;
 			virtual void MutePlayer(uint16_t peerID) = 0;
 			virtual void SetVolumeForPlayer(uint16_t peerID) = 0;
-			virtual bool IsPlayerTalking() = 0;
-
-
-
 
 		};
-
-
 	}
 }

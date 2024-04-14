@@ -58,7 +58,6 @@ namespace Cry
 			virtual float GetSoundVolumeFromPlayer(uint16_t peerID) override;
 			virtual void MutePlayer(uint16_t peerID) override;
 			virtual void SetVolumeForPlayer(uint16_t peerID) override;
-			virtual bool IsPlayerTalking() override;
 
 			void AddLocalPlayer(const ICryOdinUser& user);
 			void AddUser(ICryOdinUser user);
@@ -71,7 +70,7 @@ namespace Cry
 			void GetAudioDevices(SCryOdinAudioDevicesConfig* devices);
 			void FreeAudioDevices(SCryOdinAudioDevicesConfig* devices);
 
-			void SetTalking(bool bToggle);
+			void SetTalking(bool bToggle) {}
 		private:
 			SCryOdinAudioDevicesConfig m_audioDeviceConfig = SCryOdinAudioDevicesConfig();
 			ICryOdinUser m_user;

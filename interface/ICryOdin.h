@@ -85,7 +85,7 @@ namespace Cry
 			// MISC
 
 			virtual OdinMediaStreamHandle GetDefaultUserInputStream() const = 0;
-
+			virtual void GetPeers(std::unordered_map<uint64_t, ICryOdinUser>& map) const = 0;
 
 		};
 
