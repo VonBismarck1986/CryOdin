@@ -10,6 +10,7 @@ namespace Cry
 {
 	namespace Odin
 	{
+
 		struct SCryOdinAudioDevicesConfig
 		{
 			ma_device_info* output_devices;
@@ -23,7 +24,14 @@ namespace Cry
 			OdinAudioStreamConfig audio_input_config;
 		};
 
-		//TODO:: Might remove this
+		struct OdinDataSourceConfig
+		{
+			OdinMediaStreamHandle odin_stream[2048]; // Why 2048, cause having more then should be fine... I think
+			OdinMediaStreamHandle odin_stream_ref; // This is a ref for passing to odin_stream[2048] 
+			OdinRoomHandle room[5]; // A player can be in more then one room right now 5
+			size_t output_streams_len = 0; // This is a counter of player, so if no players connect besides main user then 0, when someone connects it goes to 1 and soon on
+			uint16_t peerID; // peer id
+		};
 
 		struct SCryOdinSounds
 		{
@@ -32,6 +40,7 @@ namespace Cry
 			Vec3     position{ ZERO }; // Cryengine Vec3 of current location of sound
 			uint16_t peerID = 0;
 			IEntity* pEntity; 
+			OdinDataSourceConfig data_source;
 		};
 
 		struct ICryOdinAudioSystem
@@ -60,8 +69,8 @@ namespace Cry
 			virtual void ResetInputStreamHandle() = 0;
 
 
-			virtual void AddSoundSource(OdinMediaStreamHandle stream, uint16_t peerID, OdinRoomHandle room) = 0;
-			virtual void RemoveSoundSource(OdinMediaStreamHandle stream, uint16_t peerID, OdinRoomHandle room) = 0;
+			virtual void AddSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room) = 0;
+			virtual void RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room) = 0;
 
 
 			// this portion here is for setting up listener to default player 
@@ -77,10 +86,6 @@ namespace Cry
 
 
 			// this portion is Sound / Volume controls
-
-			virtual float GetMicVolume() const = 0;
-			virtual void SetMicVolume(float fAmount) = 0;
-			virtual bool IsTalking() const = 0;
 
 			virtual float GetSoundVolumeFromPlayer(uint16_t peerID) = 0;
 			virtual void MutePlayer(uint16_t peerID) = 0;

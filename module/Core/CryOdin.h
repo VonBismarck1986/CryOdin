@@ -12,17 +12,22 @@ namespace Cry
 	{
 		class CCryOdinAudioSystem;
 
-		class CCryOdin final : public ICryOdin
+		class CCryOdin final 
+			: public ICryOdin
+			, public ISystemEventListener
 		{
 		public:
 			CCryOdin();
 			virtual ~CCryOdin();
 
+			static CCryOdin* Get();
 
 			// Start Up Odin, pass Accesskey and OdinApmConfig
-			virtual void Init(const char* accessKey, OdinApmConfig config) override;
+			virtual void Init(const char* accessKey) override;
 			// Shutdown Odin
 			virtual void Shutdown() override;
+
+			virtual void OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lparam) override;
 
 			// Set Current Access Key, you don't have to if already set key via Init()
 			// @param const char* - Pass Access Key 
@@ -54,14 +59,14 @@ namespace Cry
 			// before using this function make sure to Access Key has been set if set no need to input username
 			// @param IEntity - Passing refs of Entity
 			// @param user_name - Pass user's name this used internally on Odin network.
-			virtual void ConnectUserToOdin(ICryOdinUser& pEntity, const char* user_name = nullptr) override;
+			virtual void SetupLocalClient(ICryOdinUser& pEntity) override;
 
 			// Remove user from a Odin Room, must pass Odin Room Handle and EntityID 
-			virtual void RemoveUserFromOdinRoom(const char* room_name, const EntityId entityId) override;
+			virtual void RemoveUserFromOdinRoom(const ICryOdinUser& pEntity) override;
 
 			// Connect a user to a room, must pass Odin Room Handle and Entity ID
 			// @param 
-			virtual void ConnectUserToOdinRoom(const char* room_name, const EntityId entityId, const char* user_name = nullptr) override;
+			virtual void ConnectUserToOdinRoom(const char* room_name) override;
 
 			// Use this function to return Odin peer id of a user 
 			// @param EntityId - pass EntityID 
@@ -78,9 +83,10 @@ namespace Cry
 			const char* get_name_from_connection_state(OdinRoomConnectionState state);
 			uint16_t get_media_id_from_handle(OdinMediaStreamHandle handle);
 
+			void ChangeGameStatus();
 		public:
 			void OnUpdate();
-	
+			bool GameplayStarted() const { return m_bGamePlayStarted; }
 
 		private:
 			CryFixedStringT<128> m_AccessKey; // this key is for testing
@@ -91,8 +97,10 @@ namespace Cry
 
 			CCryOdinAudioSystem* m_pAudioSystem = nullptr;
 
-
+			// peer_id , ICryOdinUser 
 			std::unordered_map<uint64_t, ICryOdinUser> m_usersMap;
+
+			bool m_bGamePlayStarted;
 		};
 	}
 }

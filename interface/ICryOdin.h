@@ -30,7 +30,8 @@ namespace Cry
 			// Basic setup
 
 			// Start Up Odin, pass Accesskey, OdinApmConfig, and first user
-			virtual void Init(const char* accessKey, OdinApmConfig config) = 0;
+			virtual void Init(const char* accessKey) = 0;
+
 			// Shutdown Odin
 			virtual void Shutdown() = 0;
 
@@ -61,18 +62,18 @@ namespace Cry
 
 			// Connections
 
-			// Connect based Client to Odin Network ( This must be Local Client not Client's that are connecting to your server/game connecting )
-			// before using this function make sure to Access Key has been set if set no need to input username
-			// @param IEntity - Passing refs of Entity
+			// Connect Local Client to Odin Network ( This must be Local Client not Client's that are connecting to your server/game connecting )
+			// before using this function make sure Access Key has been
+			// @param ICryOdinUser - Passing refs of ICryOdinUser
 			// @param user_name - Pass user's name this used internally on Odin network.
-			virtual void ConnectUserToOdin(ICryOdinUser& pEntity, const char* user_name = nullptr) = 0;
+			virtual void SetupLocalClient(ICryOdinUser& pEntity) = 0;
 
 			// Remove user from a Odin Room, must pass Odin Room Handle and EntityID 
-			virtual void RemoveUserFromOdinRoom(const char* room_name, const EntityId entityId) = 0;
+			virtual void RemoveUserFromOdinRoom(const ICryOdinUser& pEntity) = 0;
 
 			// Connect a user to a room, must pass Odin Room Handle and Entity ID
 			// @param 
-			virtual void ConnectUserToOdinRoom(const char* room_name, const EntityId entityId, const char* user_name = nullptr) = 0;
+			virtual void ConnectUserToOdinRoom(const char* room_name) = 0;
 
 			// Use this function to return Odin peer id of a user 
 			// @param EntityId - pass EntityID 

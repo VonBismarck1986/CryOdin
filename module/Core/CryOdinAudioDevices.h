@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CryGame/IGameFramework.h>
 #include "ICryOdinAudioDevices.h"
 #include "ICryOdinUser.h"
 
@@ -7,11 +8,12 @@ namespace Cry
 {
 	namespace Odin
 	{
-		class CCryOdinAudioSystem final : public ICryOdinAudioSystem
+		class CCryOdinAudioSystem final 
+			: public ICryOdinAudioSystem
 		{
 		public:
 			CCryOdinAudioSystem();
-			virtual ~CCryOdinAudioSystem() = default;
+			virtual ~CCryOdinAudioSystem();
 
 			virtual bool Init() override;
 			virtual void Shutdown() override;
@@ -35,8 +37,8 @@ namespace Cry
 			virtual void ResetInputStreamHandle() override;
 
 
-			virtual void AddSoundSource(OdinMediaStreamHandle stream, uint16_t peerID, OdinRoomHandle room) override;
-			virtual void RemoveSoundSource(OdinMediaStreamHandle stream, uint16_t peerID, OdinRoomHandle room) override;
+			virtual void AddSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room) override;
+			virtual void RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room) override;
 
 
 			// this portion here is for setting up listener to default player 
@@ -53,16 +55,12 @@ namespace Cry
 
 			// this portion is Sound / Volume controls
 
-			virtual float GetMicVolume() const override;
-			virtual void SetMicVolume(float fAmount) override;
-			virtual bool IsTalking() const override;
-
 			virtual float GetSoundVolumeFromPlayer(uint16_t peerID) override;
 			virtual void MutePlayer(uint16_t peerID) override;
 			virtual void SetVolumeForPlayer(uint16_t peerID) override;
 			virtual bool IsPlayerTalking() override;
 
-			void AddLocalPlayer(const ICryOdinUser& user) { m_user = user; }
+			void AddLocalPlayer(const ICryOdinUser& user);
 			void AddUser(ICryOdinUser user);
 
 		protected:
@@ -78,7 +76,7 @@ namespace Cry
 			SCryOdinAudioDevicesConfig m_audioDeviceConfig = SCryOdinAudioDevicesConfig();
 			ICryOdinUser m_user;
 
-			std::unordered_map<int, SCryOdinSounds> m_sounds;
+			std::unordered_map<EntityId, SCryOdinSounds> m_sounds;
 		public:
 			void DebugDraw(float frameTime);
 		};

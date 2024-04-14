@@ -4,9 +4,9 @@
 #include "CryOdinAudioDataSource.h"
 
 #include "CryOdin.h"
-
 #include "Plugin.h"
 #include <CryEntitySystem/IEntity.h>
+
 
 namespace Cry
 {
@@ -37,6 +37,10 @@ namespace Cry
 				g_pAudioSystem.reset(this);
 			}
 			ODIN_LOG("CryOdinAudio System");
+		}
+
+		CCryOdinAudioSystem::~CCryOdinAudioSystem()
+		{
 		}
 
 		bool CCryOdinAudioSystem::Init()
@@ -198,19 +202,20 @@ namespace Cry
 		{
 		}
 
-		void CCryOdinAudioSystem::AddSoundSource(OdinMediaStreamHandle stream, uint16_t peerID, OdinRoomHandle room)
+		void CCryOdinAudioSystem::AddSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room)
 		{
 			ma_result result;
 
 			OdinDataSourceConfig config;
-			config.peerID = peerID;
+			config.peerID = entityID;
 			config.odin_stream_ref = std::move(stream);
 			config.room[0] = std::move(room); // set to 0 which is 1st
 
 			SCryOdinSounds soundConfig;
-			soundConfig.peerID = peerID;
-			soundConfig.pEntity = gEnv->pEntitySystem->GetEntity(peerID);
+			soundConfig.peerID = entityID;
+			soundConfig.pEntity = gEnv->pEntitySystem->GetEntity(entityID);
 			soundConfig.position = soundConfig.pEntity->GetWorldPos();
+			soundConfig.data_source = std::move(config);
 
 			// this is for odin 
 			odin_data_source_update(&config);
@@ -220,14 +225,25 @@ namespace Cry
 			{
 				ODIN_LOG("Failed to initialize the sound.");
 			}
+
 			ma_sound_set_looping(&soundConfig.sound, MA_TRUE);
 			ma_sound_start(&soundConfig.sound);
 
-			m_sounds.emplace(std::make_pair(peerID, std::move(soundConfig)));
+			m_sounds.emplace(std::make_pair(entityID, std::move(soundConfig)));
 		}
 
-		void CCryOdinAudioSystem::RemoveSoundSource(OdinMediaStreamHandle stream, uint16_t peerID, OdinRoomHandle room)
+		void CCryOdinAudioSystem::RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room)
 		{
+			auto it = m_sounds.find(entityID);
+			if (it != m_sounds.end())
+			{
+				odin_data_source_remove_stream(&it->second.data_source);
+
+				ma_sound_stop(&it->second.sound);
+				ma_sound_uninit(&it->second.sound);
+
+				m_sounds.erase(it);
+			}
 		}
 
 		void CCryOdinAudioSystem::SetListenerPosition(const IEntity& pEntity)
@@ -276,22 +292,12 @@ namespace Cry
 			return direction;
 		}
 
-		float CCryOdinAudioSystem::GetMicVolume() const
-		{
-			return 0.0f;
-		}
-
-		void CCryOdinAudioSystem::SetMicVolume(float fAmount)
-		{
-		}
-
-		bool CCryOdinAudioSystem::IsTalking() const
-		{
-			return false;
-		}
-
 		float CCryOdinAudioSystem::GetSoundVolumeFromPlayer(uint16_t peerID)
 		{
+			if (m_sounds.empty())
+				return 0.0f;
+
+
 			return 0.0f;
 		}
 
@@ -306,6 +312,17 @@ namespace Cry
 		bool CCryOdinAudioSystem::IsPlayerTalking()
 		{
 			return false;
+		}
+
+		void CCryOdinAudioSystem::AddLocalPlayer(const ICryOdinUser& user)
+		{
+			if (user.pUserEntity)
+			{
+				m_user = user;
+
+				SetListenerPosition(m_user.pUserEntity->GetPos());
+				SetListenerDirection(m_user.pUserEntity->GetForwardDir());
+			}
 		}
 
 		void CCryOdinAudioSystem::AddUser(ICryOdinUser user)

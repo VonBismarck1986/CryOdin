@@ -13,15 +13,6 @@ namespace Cry
 		struct ICryOdinUser
 		{
 
-			IEntity* pUserEntity;
-			const char* userName;
-			uint16_t OdinID;
-			bool     isTalking;
-			bool     isMuted;
-			OdinMediaStreamHandle inputStream;
-			CryFixedStringT<512> roomToken;
-			OdinApmConfig apmConfig;
-
 			ICryOdinUser(IEntity* pEntity,uint16_t odinID, const char* user_name, const char* room_token) 
 				: pUserEntity(pEntity)
 				, userName(user_name)
@@ -60,12 +51,20 @@ namespace Cry
 
 			virtual ~ICryOdinUser() {}
 
-			// INLINE ??
-
 			ILINE bool IsTalking() const { return isTalking; }
 			ILINE bool IsMuted() const { return isMuted; }
 			ILINE uint16_t GetOdinID() const { return OdinID; }
 			ILINE const char* GetUserName() const { return userName; }
+
+
+			IEntity* pUserEntity;
+			const char* userName;
+			uint16_t    OdinID;
+			bool        isTalking;
+			bool        isMuted;
+			OdinMediaStreamHandle inputStream;
+			CryFixedStringT<512>  roomToken;
+			OdinApmConfig         apmConfig;
 		};
 	}
 }
