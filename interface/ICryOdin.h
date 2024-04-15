@@ -29,7 +29,7 @@ namespace Cry
 
 			// Basic setup
 
-			// Start Up Odin, pass Accesskey, OdinApmConfig, and first user
+			// Start Up Odin and pass your accessKey
 			virtual void Init(const char* accessKey) = 0;
 
 			// Shutdown Odin
@@ -62,17 +62,16 @@ namespace Cry
 
 			// Connections
 
-			// Connect Local Client to Odin Network ( This must be Local Client not Client's that are connecting to your server/game connecting )
-			// before using this function make sure Access Key has been
-			// @param ICryOdinUser - Passing refs of ICryOdinUser
-			// @param user_name - Pass user's name this used internally on Odin network.
+			// Setup the local Client
+			//@param ICryOdinUser - This is basic struct of details of the local user and all users from Odin to Cryengine
 			virtual void SetupLocalClient(ICryOdinUser& pEntity) = 0;
 
-			// Remove user from a Odin Room, must pass Odin Room Handle and EntityID 
+			// Use this function to remove local user ( current ) from a room
+			//@param ICryOdinUser - This is basic struct of details of the local user and all users from Odin to Cryengine
 			virtual void RemoveUserFromOdinRoom(const ICryOdinUser& pEntity) = 0;
 
-			// Connect a user to a room, must pass Odin Room Handle and Entity ID
-			// @param 
+			// Connect the local to a room, must pass a room name this will be RoomHandle
+			// @param const char* - Just pass a room name example "my_room"
 			virtual void ConnectUserToOdinRoom(const char* room_name) = 0;
 
 			// Use this function to return Odin peer id of a user 
@@ -80,14 +79,11 @@ namespace Cry
 			// @return uint64_t - Odin peerID
 			virtual uint64_t GetOdinUserId(const EntityId entityId) = 0;
 
-
-
 			// MISC
 
 			virtual OdinMediaStreamHandle GetDefaultUserInputStream() const = 0;
 			virtual void GetPeers(std::unordered_map<uint64_t, ICryOdinUser>& map) const = 0;
 
 		};
-
 	}
 }

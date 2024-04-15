@@ -6,7 +6,8 @@
 #include "CryOdin.h"
 #include "Plugin.h"
 #include <CryEntitySystem/IEntity.h>
-
+#include <CryRenderer/IRenderAuxGeom.h>
+#include <CryRenderer/IRenderer.h>
 
 namespace Cry
 {
@@ -45,7 +46,6 @@ namespace Cry
 
 		bool CCryOdinAudioSystem::Init()
 		{
-
 			// First we setup miniaudio resources before launching the engine
 			ma_result result;
 
@@ -87,7 +87,6 @@ namespace Cry
 			input_config.capture.channels = 1;
 			input_config.sampleRate = 48000;
 			input_config.dataCallback = data_callback;
-			//input_config.notificationCallback = inputCallback; //TODO:: Re-add maybe developer would want to know if device is connected or got disconnected... 
 
 			result = ma_device_init(NULL, &input_config, &m_audioDeviceConfig.input);
 			if (result != MA_SUCCESS) {
@@ -104,7 +103,6 @@ namespace Cry
 			config.allocationCallbacks = MemoryCallback;
 			config.pResourceManager = &m_resourceManager;
 			config.listenerCount = 1;
-
 
 			result = ma_engine_init(&config, &m_engine);
 			if (result != MA_SUCCESS) {
@@ -147,7 +145,8 @@ namespace Cry
 
 		void CCryOdinAudioSystem::OnUpdate(float frameTime)
 		{
-			// We have to make sure current local player listener is being updated might want to change this to its own class... yup sigh
+			DebugDraw(frameTime);
+			// We have to make sure current local player listener is being updated might want to change this to its own class...
 
 			if (m_sounds.empty())
 				return;
@@ -232,7 +231,7 @@ namespace Cry
 			m_sounds.emplace(std::make_pair(entityID, std::move(soundConfig)));
 		}
 
-		void CCryOdinAudioSystem::RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room)
+		void CCryOdinAudioSystem::RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID)
 		{
 			auto it = m_sounds.find(entityID);
 			if (it != m_sounds.end())
@@ -398,7 +397,13 @@ namespace Cry
 
 		void CCryOdinAudioSystem::DebugDraw(float frameTime)
 		{
+#if _PROFILE || _DEBUG
+			if (m_sounds.empty())
+				return;
 
+
+
+#endif // _PROFILE || _DEBUG
 		}
 
 

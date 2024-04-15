@@ -38,7 +38,7 @@ namespace Cry
 
 
 			virtual void AddSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room) override;
-			virtual void RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room) override;
+			virtual void RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID) override;
 
 
 			// this portion here is for setting up listener to default player 

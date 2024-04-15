@@ -36,10 +36,6 @@ namespace Cry
 
 		}
 
-		CCryOdin::~CCryOdin()
-		{
-		}
-
 		CCryOdin* CCryOdin::Get()
 		{
 			return g_pOdin.get();
@@ -368,15 +364,9 @@ namespace Cry
 				{
 					if (peer.second.OdinID == peer_id)
 					{
+						m_pAudioSystem->RemoveSoundSource(peer.second.inputStream, peer.second.pUserEntity->GetId());
 						m_usersMap.erase(peer.first);
 						break;
-						//odin_media_stream_peer_id(peer.second.inputStream, &peer_id);
-						//if (peer.second.OdinID == peer_id)
-						//{
-						//	//remove_output_stream(i);
-						//	ODIN_LOG("Peer(%" PRIu64 ") left\n", peer_id);
-						//	break;
-						//}
 					}
 				}
 
@@ -417,7 +407,7 @@ namespace Cry
 				{
 					if (m_pAudioSystem)
 					{
-						m_pAudioSystem->RemoveSoundSource(event->media_removed.media_handle, it->second.OdinID, m_room);
+						m_pAudioSystem->RemoveSoundSource(event->media_removed.media_handle, it->second.pUserEntity->GetId());
 					}
 				}
 				ODIN_LOG("Media(%d) removed by Peer(%" PRIu64 ")\n", media_id, peer_id);
