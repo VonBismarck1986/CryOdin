@@ -41,7 +41,7 @@ void Cry::Odin::CCryOdinPlugin::MainUpdate(float frameTime)
 {
 	if (m_pOdin)
 	{
-		m_pOdin->OnUpdate();
+		m_pOdin->OnUpdate(frameTime);
 	}
 }
 

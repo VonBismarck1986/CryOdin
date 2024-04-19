@@ -20,17 +20,15 @@ namespace Cry
 			virtual ICryOdin* GetOdin() const = 0;
 		};
 
-		// Forward Delcared
-		struct ICryOdinAudioDevice;
-
+		
 		struct ICryOdin
 		{
 			virtual ~ICryOdin() {}
 
-			// Basic setup
 
 			// Start Up Odin and pass your accessKey
-			virtual void Init(const char* accessKey) = 0;
+			// @param const char* - your Odin Access Key
+			virtual bool Init(const char* accessKey) = 0;
 
 			// Shutdown Odin
 			virtual void Shutdown() = 0;
@@ -47,11 +45,7 @@ namespace Cry
 			//@param const char* - This Is actually EntityID best to create a string and format with EntityID and pass it with c_str ( example: string userID = string().Format("%s", EntityID);
 			virtual const char* GenerateRoomToken(const char* roomID, const char* user_id) const = 0;
 
-			// Get the current Room Token being used
-			//@return const char of token
-			virtual const char* GetCurrentRoomToken() const = 0;
-
-			// Set up APM Config for Odin
+			// Set up APM Config for Odin and current user, note this effect current user APM settings
 			//@param OdinApmConfig - base struct for APM settings
 			virtual void SetOdinApmConfig(OdinApmConfig config) = 0;
 
@@ -64,26 +58,25 @@ namespace Cry
 
 			// Setup the local Client
 			//@param ICryOdinUser - This is basic struct of details of the local user and all users from Odin to Cryengine
-			virtual void SetupLocalClient(ICryOdinUser& pEntity) = 0;
+			virtual bool SetupAndConnectLocalClient(const IUser& pUser) = 0;
 
 			// Use this function to remove local user ( current ) from a room
 			//@param ICryOdinUser - This is basic struct of details of the local user and all users from Odin to Cryengine
-			virtual void RemoveUserFromOdinRoom(const ICryOdinUser& pEntity) = 0;
+			virtual void RemoveLocalClientFromOdinRoom(const IUser& pEntity) = 0;
 
-			// Connect the local to a room, must pass a room name this will be RoomHandle
+			// Connect the local user to a room, must pass a room name this will become a new RoomHandle
 			// @param const char* - Just pass a room name example "my_room"
 			virtual void ConnectUserToOdinRoom(const char* room_name) = 0;
 
 			// Use this function to return Odin peer id of a user 
-			// @param EntityId - pass EntityID 
+			// @param IUser - pass Cry::Odin::IUser ( IUser ) 
 			// @return uint64_t - Odin peerID
-			virtual uint64_t GetOdinUserId(const EntityId entityId) = 0;
+			virtual uint64_t GetOdinUserId(const IUser entityId) = 0;
 
-			// MISC
-
-			virtual OdinMediaStreamHandle GetDefaultUserInputStream() const = 0;
-			virtual void GetPeers(std::unordered_map<uint64_t, ICryOdinUser>& map) const = 0;
-
+			// All connected peers in current room
+			//@param std::map - pass a empty map of uint64_t , IUser this will copy over to your map
+			virtual void GetPeers(std::unordered_map<uint64_t, IUser>& map) const = 0;
 		};
+
 	}
 }

@@ -1,25 +1,43 @@
 #include "StdAfx.h"
 #include "CryOdinAudioDevices.h"
 #include "Utils/MiniAudioHelpers.h"
-#include "CryOdinAudioDataSource.h"
 
-#include "CryOdin.h"
+#include <CryAction.h>
 #include "Plugin.h"
-#include <CryEntitySystem/IEntity.h>
+
 #include <CryRenderer/IRenderAuxGeom.h>
-#include <CryRenderer/IRenderer.h>
 
 namespace Cry
 {
 	namespace Odin
 	{
+
+		constexpr int MAX_MA_SOUNDS = 150;
+		int counter = 0;
+
+		std::unique_ptr<CCryOdinAudioSystem> g_pAudioSystem;
 		ma_engine m_engine;
 		ma_resource_manager m_resourceManager;
 
-		OdinDataSouce m_odinDataSource; // test
+		OdinMediaStreamHandle output_streams[512];
+		OdinRoomHandle m_room;
+		size_t output_streams_len = 0; // This is a counter of player, so if no players connect besides main user then 0, when someone connects it goes to 1 and soon on
+		
+		struct SOdinMASound
+		{
+			SOdinMASound()
+			{
+				sound = ma_sound();
+			}
+			ma_sound sound;
+			Vec3 position = ZERO;
+			EntityId m_id = INVALID_ENTITYID;
+		};
+
+		std::vector<SOdinMASound> m_sounds;
 
 
-		std::unique_ptr<CCryOdinAudioSystem> g_pAudioSystem;
+		static ma_pcm_rb m_ringBuffer;
 
 		static ma_allocation_callbacks MemoryCallback = {
 			nullptr,
@@ -29,9 +47,7 @@ namespace Cry
 		};
 
 
-
 		CCryOdinAudioSystem::CCryOdinAudioSystem()
-			: m_user(ICryOdinUser())
 		{
 			if (!g_pAudioSystem)
 			{
@@ -40,33 +56,11 @@ namespace Cry
 			ODIN_LOG("CryOdinAudio System");
 		}
 
-		CCryOdinAudioSystem::~CCryOdinAudioSystem()
-		{
-		}
-
 		bool CCryOdinAudioSystem::Init()
 		{
-			// First we setup miniaudio resources before launching the engine
 			ma_result result;
 
-			ma_resource_manager_config resourceManagerConfig;
-			resourceManagerConfig = ma_resource_manager_config_init();
-			resourceManagerConfig.decodedFormat = ma_format_f32;
-			resourceManagerConfig.decodedChannels = 0;
-			resourceManagerConfig.decodedSampleRate = 48000;
-			resourceManagerConfig.allocationCallbacks = MemoryCallback;
-			
-			result = ma_resource_manager_init(&resourceManagerConfig, &m_resourceManager);
-			if (result != MA_SUCCESS)
-			{
-				CryWarning(VALIDATOR_MODULE_AUDIO, VALIDATOR_ASSERT, "Unable to start Miniaudio resource manager retart Game!");
-				return false;
-			}
-
-			// Once resource manager is started we get audio devices ready
-
 			GetAudioDevices(&m_audioDeviceConfig);
-
 
 			ma_device_config output_config = ma_device_config_init(ma_device_type_playback);
 
@@ -94,8 +88,14 @@ namespace Cry
 				return false;
 			}
 
-			OdinDataSourceConfig configOdin;
-			odin_data_source_init(&configOdin, &m_odinDataSource);
+			result = ma_pcm_rb_init(m_audioDeviceConfig.output.playback.format, m_audioDeviceConfig.output.playback.channels, m_audioDeviceConfig.output.playback.internalPeriodSizeInFrames * 5, NULL, NULL, &m_ringBuffer);
+			if (result != MA_SUCCESS) {
+				ODIN_LOG("Failed to initialize the ring buffer.");
+				return false;
+			}
+
+			ma_pcm_rb_set_sample_rate(&m_ringBuffer, m_audioDeviceConfig.output.sampleRate);
+
 
 			ma_engine_config config;
 			config = ma_engine_config_init();
@@ -122,216 +122,82 @@ namespace Cry
 
 		void CCryOdinAudioSystem::Shutdown()
 		{
-			// Sounds, engine, device, others 
-			odin_media_stream_destroy(m_user.inputStream);
-			m_user.inputStream = 0;
 
-			ma_device_uninit(&m_audioDeviceConfig.input);
-			ma_device_uninit(&m_audioDeviceConfig.output);
-
-			FreeAudioDevices(&m_audioDeviceConfig);
-
-			ma_engine_uninit(&m_engine);
-
-			odin_data_source_uninit(&m_odinDataSource);
-
-			ma_resource_manager_uninit(&m_resourceManager);
-
-			if (g_pAudioSystem)
-			{
-				g_pAudioSystem.release();
-			}
 		}
 
 		void CCryOdinAudioSystem::OnUpdate(float frameTime)
 		{
-			DebugDraw(frameTime);
-			// We have to make sure current local player listener is being updated might want to change this to its own class...
+			/* right now I'm updating all positions at once, this isn't really best practice */
+			UpdateClientListener();
 
-			if (m_sounds.empty())
-				return;
-
-			for (auto& sound : m_sounds)
+			for (auto& it : m_sounds)
 			{
-				sound.second.position = sound.second.pEntity->GetWorldPos(); // Get Pos of Entity
-				ma_sound_set_position(&sound.second.sound, sound.second.position.x, sound.second.position.y, sound.second.position.z); // Now Set it to sound
+				if (it.m_id != INVALID_ENTITYID)
+				{
+					auto pEntity = gEnv->pEntitySystem->GetEntity(it.m_id);
+					ma_sound_set_position(&it.sound, pEntity->GetWorldPos().x, pEntity->GetWorldPos().y, pEntity->GetWorldPos().z);
+					ma_sound_set_direction(&it.sound, pEntity->GetForwardDir().x, pEntity->GetForwardDir().y, pEntity->GetForwardDir().z);
+
+					it.position = Vec3(ma_sound_get_position(&it.sound).x, ma_sound_get_position(&it.sound).y, ma_sound_get_position(&it.sound).z);
+				}
 			}
-		}
 
-		SCryOdinAudioDevicesConfig CCryOdinAudioSystem::GetAudioDeviceConfig() const
-		{
-			return m_audioDeviceConfig;
-		}
-
-		ma_device_info* CCryOdinAudioSystem::GetAllOutputDevices() const
-		{
-			return m_audioDeviceConfig.output_devices;
-		}
-
-		ma_device_info* CCryOdinAudioSystem::GetAllInputDevices() const
-		{
-			return m_audioDeviceConfig.input_devices;
-		}
-
-		ma_device CCryOdinAudioSystem::GetCurrentInputDevice() const
-		{
-			return m_audioDeviceConfig.input;
-		}
-
-		ma_device CCryOdinAudioSystem::GetCurrentOutDevice() const
-		{
-			return m_audioDeviceConfig.output;
-		}
-
-		int CCryOdinAudioSystem::GetNumberOfInputDevices() const
-		{
-			return m_audioDeviceConfig.input_devices_count;
-		}
-
-		int CCryOdinAudioSystem::GetNumberOfOutputDevices() const
-		{
-			return m_audioDeviceConfig.output_devices_count;
-		}
-
-		void CCryOdinAudioSystem::SetInputStreamHandle(OdinMediaStreamHandle handle)
-		{
-		}
-
-		void CCryOdinAudioSystem::ResetInputStreamHandle()
-		{
+			DrawDebug(frameTime);
 		}
 
 		void CCryOdinAudioSystem::AddSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room)
 		{
+			m_room = room;
+			InsertOutputStream(stream);
 			ma_result result;
 
-			OdinDataSourceConfig config;
-			config.peerID = entityID;
-			config.odin_stream_ref = std::move(stream);
-			config.room[0] = std::move(room); // set to 0 which is 1st
+			auto pEntity = gEnv->pEntitySystem->GetEntity(entityID);
 
-			SCryOdinSounds soundConfig;
-			soundConfig.peerID = entityID;
-			soundConfig.pEntity = gEnv->pEntitySystem->GetEntity(entityID);
-			soundConfig.position = soundConfig.pEntity->GetWorldPos();
-			soundConfig.data_source = std::move(config);
-
-			// this is for odin 
-			odin_data_source_update(&config);
-
-			result = ma_sound_init_from_data_source(&m_engine, &m_odinDataSource, 0, NULL, &soundConfig.sound);
-			if (result != MA_SUCCESS)
+			for (int i{ 0 }; i < MAX_MA_SOUNDS; ++i)
 			{
-				ODIN_LOG("Failed to initialize the sound.");
+				if (i == counter)
+				{
+					SOdinMASound sound{};
+					m_sounds.push_back(sound);
+
+					m_sounds[i].m_id = entityID;
+					m_sounds[i].position = pEntity->GetWorldPos();
+
+					result = ma_sound_init_from_data_source(&m_engine, &m_ringBuffer, 0, NULL, &m_sounds[i].sound);
+					if (result != MA_SUCCESS) {
+						ODIN_LOG("Failed to initialize the sound.");
+						break;
+					}
+					ma_sound_set_looping(&m_sounds[i].sound, MA_TRUE);
+					ma_sound_set_pinned_listener_index(&m_sounds[i].sound, 0);
+					ma_sound_set_positioning(&m_sounds[i].sound, ma_positioning_relative);
+
+					ma_sound_start(&m_sounds[i].sound);
+
+					ODIN_LOG("Start sound: ( %d ) - location: %.2f,%.2f,%.2f", i, m_sounds[i].position.x, m_sounds[i].position.y, m_sounds[i].position.z);
+				}
+				break;
 			}
 
-			ma_sound_set_looping(&soundConfig.sound, MA_TRUE);
-			ma_sound_start(&soundConfig.sound);
-
-			m_sounds.emplace(std::make_pair(entityID, std::move(soundConfig)));
+			counter++;
 		}
 
 		void CCryOdinAudioSystem::RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID)
 		{
-			auto it = m_sounds.find(entityID);
-			if (it != m_sounds.end())
-			{
-				odin_data_source_remove_stream(&it->second.data_source);
 
-				ma_sound_stop(&it->second.sound);
-				ma_sound_uninit(&it->second.sound);
-
-				m_sounds.erase(it);
-			}
 		}
 
-		void CCryOdinAudioSystem::SetListenerPosition(const IEntity& pEntity)
+		void CCryOdinAudioSystem::InsertOutputStream(OdinMediaStreamHandle stream)
 		{
-			if (pEntity.GetId() != INVALID_ENTITYID)
-			{
-				auto pos = pEntity.GetWorldPos();
-
-				ma_engine_listener_set_position(&m_engine, 0, -pos.x, pos.z, pos.y);
-			}
+			output_streams[output_streams_len] = stream;
+			output_streams_len += 1;
 		}
 
-		void CCryOdinAudioSystem::SetListenerPosition(const Vec3& position)
+		void CCryOdinAudioSystem::RemoveOutputStream(size_t index)
 		{
-			ma_engine_listener_set_position(&m_engine, 0, position.x, position.y, position.x);
-		}
-
-		void CCryOdinAudioSystem::SetListenerDirection(const IEntity& pEntity)
-		{
-			if (pEntity.GetId() != INVALID_ENTITYID)
-			{
-				auto posFwd = pEntity.GetForwardDir();
-
-				ma_engine_listener_set_direction(&m_engine, 0, posFwd.x, posFwd.y, posFwd.x);
-			}
-		}
-
-		void CCryOdinAudioSystem::SetListenerDirection(const Vec3& direction)
-		{
-			ma_engine_listener_set_position(&m_engine, 0, direction.x, direction.y, direction.x);
-		}
-
-		Vec3 CCryOdinAudioSystem::GetListenerPosition() const
-		{
-			auto listenPos = ma_engine_listener_get_position(&m_engine, 0);
-			Vec3 position = Vec3(listenPos.x,listenPos.y,listenPos.z);
-
-			return position;
-		}
-
-		Vec3 CCryOdinAudioSystem::GetListenerDirection() const
-		{
-			auto listenDir = ma_engine_listener_get_direction(&m_engine, 0);
-			Vec3 direction = Vec3(listenDir.x, listenDir.y, listenDir.z);
-
-			return direction;
-		}
-
-		float CCryOdinAudioSystem::GetSoundVolumeFromPlayer(uint16_t peerID)
-		{
-			if (m_sounds.empty())
-				return 0.0f;
-
-
-			return 0.0f;
-		}
-
-		void CCryOdinAudioSystem::MutePlayer(uint16_t peerID)
-		{
-			auto it = m_sounds.find(peerID);
-			if (it != m_sounds.end())
-			{
-
-			}
-		}
-
-		void CCryOdinAudioSystem::SetVolumeForPlayer(uint16_t peerID)
-		{
-			auto it = m_sounds.find(peerID);
-			if (it != m_sounds.end())
-			{
-				
-			}
-		}
-
-		void CCryOdinAudioSystem::AddLocalPlayer(const ICryOdinUser& user)
-		{
-			if (user.pUserEntity)
-			{
-				m_user = user;
-
-				SetListenerPosition(m_user.pUserEntity->GetPos());
-				SetListenerDirection(m_user.pUserEntity->GetForwardDir());
-			}
-		}
-
-		void CCryOdinAudioSystem::AddUser(ICryOdinUser user)
-		{
-			
+			output_streams_len -= 1;
+			output_streams[index] = output_streams[output_streams_len];
+			output_streams[output_streams_len] = 0;
 		}
 
 		void CCryOdinAudioSystem::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
@@ -341,17 +207,48 @@ namespace Cry
 
 		void CCryOdinAudioSystem::process_audio_data(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 		{
-			if(pDevice->type == ma_device_type_capture && m_user.inputStream)
+			if (pDevice->type == ma_device_type_capture && m_user.inputStream)
 			{
 				// Push audio buffer from miniaudio callback to ODIN input stream
-				int sample_count = frameCount * 1;
+				int sample_count = frameCount * m_audioDeviceConfig.input.capture.channels;
 				odin_audio_push_data(m_user.inputStream, (const float*)pInput, sample_count);
 			}
-			else if (pDevice->type == ma_device_type_playback)
+			else if (pDevice->type == ma_device_type_playback && output_streams_len)
 			{
-				cry_odin_source_read(&m_odinDataSource, pOutput, frameCount, NULL);
+				ma_result result;
+				ma_uint32 framesWritten;
+
+				int sample_count = frameCount * m_audioDeviceConfig.output.playback.channels;
+				odin_audio_mix_streams(m_room, output_streams, output_streams_len, (float*)pOutput, sample_count);
+
+				framesWritten = 0;
+				while (framesWritten < frameCount)
+				{
+					void* pMappedBuffer;
+					ma_uint32 framesToWrite = frameCount - framesWritten;
+
+					result = ma_pcm_rb_acquire_write(&m_ringBuffer, &framesToWrite, &pMappedBuffer);
+					if (result != MA_SUCCESS)
+					{
+						break;
+					}
+
+					if (framesToWrite == 0) {
+						break;
+					}
+
+					ma_copy_pcm_frames(pMappedBuffer, ma_offset_pcm_frames_ptr_f32((float*)pOutput,framesWritten,pDevice->playback.channels), framesToWrite,pDevice->playback.format,pDevice->playback.channels);
+
+					result = ma_pcm_rb_commit_write(&m_ringBuffer, framesToWrite);
+					if (result != MA_SUCCESS) {
+						break;
+					}
+
+					framesWritten += framesToWrite;
+				}
 			}
 
+			(void*)pOutput;
 		}
 
 		void CCryOdinAudioSystem::GetAudioDevices(SCryOdinAudioDevicesConfig* devices)
@@ -395,16 +292,35 @@ namespace Cry
 			devices->input_devices_count = 0;
 		}
 
-		void CCryOdinAudioSystem::DebugDraw(float frameTime)
+		void CCryOdinAudioSystem::DrawDebug(float frameTime)
 		{
-#if _PROFILE || _DEBUG
 			if (m_sounds.empty())
 				return;
 
+			for (int i{ 0 }; i < counter; ++i)
+			{
+				gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(m_sounds[i].position, 1.75f, Col_Blue);
 
-
-#endif // _PROFILE || _DEBUG
+				gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(m_user.listenerPosition, 0.75f, Col_Red);
+			
+			}
 		}
+
+		void CCryOdinAudioSystem::UpdateClientListener()
+		{
+			if (!m_user.m_pEntity)
+				return;
+
+			ma_engine_listener_set_position(&m_engine, 0, m_user.m_pEntity->GetWorldPos().x, m_user.m_pEntity->GetWorldPos().y, m_user.m_pEntity->GetWorldPos().z);
+			ma_engine_listener_set_direction(&m_engine, 0, m_user.m_pEntity->GetForwardDir().x, m_user.m_pEntity->GetForwardDir().y, m_user.m_pEntity->GetForwardDir().z);
+			
+			//ma_engine_listener_set_velocity();
+
+			m_user.listenerPosition = Vec3(ma_engine_listener_get_position(&m_engine, 0).x, ma_engine_listener_get_position(&m_engine, 0).y, ma_engine_listener_get_position(&m_engine, 0).z);
+		}
+
+
+
 
 
 	}

@@ -1,28 +1,20 @@
 #include "StdAfx.h"
 #include "CryOdin.h"
+
 #include "CryOdinAudioDevices.h"
-
 #include "Plugin.h"
-
-#include <cstdlib> // maybe?
-
-
-#define DEFAULT_ROOM "Cryengine-Room"
 
 namespace Cry
 {
 	namespace Odin
 	{
-
 		static std::unique_ptr<CCryOdin> g_pOdin;
 
 		CCryOdin::CCryOdin()
 			: m_AccessKey("AX907gsvRoGiz9qqhupOleCfR8q1BYE+8LcKwfgbGFqk") // for testing
+			, m_pCurrentUser(nullptr)
 			, m_RoomToken("")
-			, m_ApmConfig(OdinApmConfig())
-			, m_pMainClient(ICryOdinUser())
 			, m_room(0)
-			, m_bGamePlayStarted(false)
 		{
 			gEnv->pSystem->GetISystemEventDispatcher()->RegisterListener(this, "Odin_SDK");
 
@@ -30,10 +22,14 @@ namespace Cry
 			{
 				g_pOdin = std::make_unique<CCryOdin>(*this);
 			}
-			ODIN_LOG(" CryOdin System");
+
 			m_pAudioSystem = new CCryOdinAudioSystem();
 			m_pAudioSystem->Init();
+			ODIN_LOG("CryOdin System Init");
+		}
 
+		CCryOdin::~CCryOdin()
+		{
 		}
 
 		CCryOdin* CCryOdin::Get()
@@ -41,7 +37,7 @@ namespace Cry
 			return g_pOdin.get();
 		}
 
-		void CCryOdin::Init(const char* accessKey)
+		bool CCryOdin::Init(const char* accessKey)
 		{
 			char gen_access_key[128];
 
@@ -62,12 +58,15 @@ namespace Cry
 				ODIN_LOG("Access Key: %s", m_AccessKey.c_str());
 			}
 
+
 			OdinAudioStreamConfig audio_output_config;
 			audio_output_config.channel_count = 2;
 			audio_output_config.sample_rate = 48000;
 
 			ODIN_LOG("Initializing ODIN runtime %s\n", ODIN_VERSION);
 			odin_startup_ex(ODIN_VERSION, audio_output_config);
+
+			return true;
 		}
 
 		void CCryOdin::Shutdown()
@@ -93,28 +92,15 @@ namespace Cry
 
 		void CCryOdin::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lparam)
 		{
-			// This works but isn't pretty..
 			switch (event)
 			{
-				case ESYSTEM_EVENT_EDITOR_GAME_MODE_CHANGED:
-				{
-					if (gEnv->IsEditorGameMode())
-					{
-						ChangeGameStatus();
-					}
-					else {
-						ChangeGameStatus();
-					}
-				}
-				break;
 				case ESYSTEM_EVENT_LEVEL_GAMEPLAY_START:
 				{
-					if (!gEnv->IsEditor())
-					{
-						ChangeGameStatus();
-					}
+
 				}
 				break;
+				default:
+					break;
 			}
 		}
 
@@ -125,7 +111,7 @@ namespace Cry
 
 		const char* CCryOdin::GenerateAccessKey() const
 		{
-			odin_access_key_generate(m_AccessKey.m_str, sizeof(m_AccessKey));		
+			odin_access_key_generate(m_AccessKey.m_str, sizeof(m_AccessKey));
 			return m_AccessKey.c_str();
 		}
 
@@ -156,26 +142,43 @@ namespace Cry
 			return m_RoomToken.c_str();
 		}
 
-		const char* CCryOdin::GetCurrentRoomToken() const
-		{
-			return m_RoomToken.c_str();
-		}
-
 		void CCryOdin::SetOdinApmConfig(OdinApmConfig config)
 		{
-			m_ApmConfig = config;
+			m_pCurrentUser.apmConfig = config;
 		}
 
 		OdinApmConfig CCryOdin::GetCurrentOdinApmConfig() const
 		{
-			return m_ApmConfig;
+			if (m_pCurrentUser.m_pEntity)
+			{
+				return m_pCurrentUser.apmConfig;
+			}
+
+			// send a default
+			OdinApmConfig apmConfig{};
+			apmConfig.voice_activity_detection = true;
+			apmConfig.voice_activity_detection_attack_probability = 0.9;
+			apmConfig.voice_activity_detection_release_probability = 0.8;
+			apmConfig.volume_gate = false;
+			apmConfig.volume_gate_attack_loudness = -30;
+			apmConfig.volume_gate_release_loudness = -40;
+			apmConfig.echo_canceller = true;
+			apmConfig.high_pass_filter = false;
+			apmConfig.pre_amplifier = false;
+			apmConfig.noise_suppression_level = OdinNoiseSuppressionLevel_Moderate;
+			apmConfig.transient_suppressor = false;
+			apmConfig.gain_controller = true;
+
+
+			return apmConfig;
 		}
 
-		void CCryOdin::SetupLocalClient(ICryOdinUser& pEntity)
+		bool CCryOdin::SetupAndConnectLocalClient(const IUser& pUser)
 		{
-			m_pMainClient = pEntity;
-
 			OdinReturnCode error;
+
+			m_pCurrentUser = pUser;
+
 
 			m_room = odin_room_create();
 			error = odin_room_set_event_callback(m_room, handle_odin_event, NULL);
@@ -184,73 +187,95 @@ namespace Cry
 				print_error(error, "Failed to set room event callback");
 			}
 
-			string user_id = string().Format("%i", pEntity.pUserEntity->GetId());
+			string user_id = string().Format("%i", m_pCurrentUser.m_pEntity->GetId());
 			const char* userID = user_id.c_str();
 
-			string userName = string().Format("{\"name\":\"%s\"}", pEntity.pUserEntity->GetName());
-			string defaultRoom = string().Format("%s_default_room", pEntity.pUserEntity->GetName());
+			string userName = string().Format("{\"name\":\"%s\"}", m_pCurrentUser.m_pEntity->GetName());
+			string defaultRoom = string().Format("%s_default_room", m_pCurrentUser.m_pEntity->GetName());
 
-			m_pMainClient = pEntity;
-			m_pMainClient.roomToken = GenerateRoomToken(defaultRoom.c_str(), userID);
-			m_pMainClient.userName = userName.c_str();
+			m_RoomToken = GenerateRoomToken(defaultRoom.c_str(), userID);
+			m_pCurrentUser.userName = userName.c_str();
 
-			error = odin_room_update_peer_user_data(m_room, (uint8_t*)m_pMainClient.userName, strlen(m_pMainClient.userName));
+			error = odin_room_update_peer_user_data(m_room, (uint8_t*)m_pCurrentUser.userName, strlen(m_pCurrentUser.userName));
 			if (odin_is_error(error))
 			{
 				print_error(error, "Failed to set user data");
+				return false;
 			}
+			ODIN_LOG("Setting Username: %s", m_pCurrentUser.userName);
 
-			error = odin_room_configure_apm(m_room, m_pMainClient.apmConfig);
+			error = odin_room_configure_apm(m_room, m_pCurrentUser.apmConfig);
 			if (odin_is_error(error))
 			{
 				print_error(error, "Failed to configure room audio processing options");
+				return false;
 			}
 
-			ODIN_LOG("Joining room '%s' using '%s' with token '%s'\n", defaultRoom.c_str(), DEFAULT_ODIN_URL, m_pMainClient.roomToken.c_str());
-			error = odin_room_join(m_room, DEFAULT_ODIN_URL, m_pMainClient.roomToken.c_str());
+			ODIN_LOG("Joining room '%s' using '%s' with token '%s'\n", defaultRoom.c_str(), DEFAULT_ODIN_URL, m_RoomToken.c_str());
+			error = odin_room_join(m_room, DEFAULT_ODIN_URL, m_RoomToken.c_str());
 			if (odin_is_error(error))
 			{
 				print_error(error, "Failed to join room");
+				return false;
 			}
 
 			OdinAudioStreamConfig streamConfig;
 			streamConfig.channel_count = 1;
 			streamConfig.sample_rate = 48000;
 
-			m_pMainClient.inputStream = odin_audio_stream_create(streamConfig);
+			m_pCurrentUser.inputStream = odin_audio_stream_create(streamConfig);
 
-			error = odin_room_add_media(m_room, m_pMainClient.inputStream);
+			error = odin_room_add_media(m_room, m_pCurrentUser.inputStream);
 			if (odin_is_error(error))
 			{
 				print_error(error, "Failed to add media stream");
+				return false;
 			}
 
-			m_pAudioSystem->AddLocalPlayer(m_pMainClient);
-		}
+			m_pAudioSystem->AddLocalPlayer(m_pCurrentUser);
 
-		void CCryOdin::RemoveUserFromOdinRoom(const ICryOdinUser& pEntity)
-		{
-			if (pEntity.pUserEntity->GetId() == m_pMainClient.pUserEntity->GetId())
-			{
-				odin_media_stream_destroy(m_pMainClient.inputStream);
-				odin_room_close(m_room);
-			}
+			return true;
 		}
 
 		void CCryOdin::ConnectUserToOdinRoom(const char* room_name)
 		{
 			OdinReturnCode error;
-
-			odin_media_stream_destroy(m_pMainClient.inputStream);
+			odin_room_destroy(m_room);
 			odin_room_close(m_room);
 
+			m_room = odin_room_create();
+			error = odin_room_set_event_callback(m_room, handle_odin_event, NULL);
+			if (odin_is_error(error))
+			{
+				print_error(error, "Failed to set room event callback");
+			}
 
-			string user_id = string().Format("%i", m_pMainClient.pUserEntity->GetId());
+
+			string user_id = string().Format("%i", m_pCurrentUser.m_pEntity->GetId());
 			const char* userID = user_id.c_str();
 
-			m_pMainClient.roomToken = GenerateRoomToken(room_name, userID);
+			string userName = string().Format("{\"name\":\"%s\"}", m_pCurrentUser.m_pEntity->GetName());
 
-			error = odin_room_join(m_room, DEFAULT_ODIN_URL, m_pMainClient.roomToken.c_str());
+			m_RoomToken = GenerateRoomToken(room_name, userID);
+			m_pCurrentUser.userName = userName.c_str();
+
+			error = odin_room_update_peer_user_data(m_room, (uint8_t*)m_pCurrentUser.userName, strlen(m_pCurrentUser.userName));
+			if (odin_is_error(error))
+			{
+				print_error(error, "Failed to set user data");
+
+			}
+			ODIN_LOG("Setting Username: %s", m_pCurrentUser.userName);
+
+			error = odin_room_configure_apm(m_room, m_pCurrentUser.apmConfig);
+			if (odin_is_error(error))
+			{
+				print_error(error, "Failed to configure room audio processing options");
+
+			}
+
+			ODIN_LOG("Joining room '%s' using '%s' with token '%s'\n", room_name, DEFAULT_ODIN_URL, m_RoomToken.c_str());
+			error = odin_room_join(m_room, DEFAULT_ODIN_URL, m_RoomToken.c_str());
 			if (odin_is_error(error))
 			{
 				print_error(error, "Failed to join room");
@@ -260,20 +285,55 @@ namespace Cry
 			streamConfig.channel_count = 1;
 			streamConfig.sample_rate = 48000;
 
-			m_pMainClient.inputStream = odin_audio_stream_create(streamConfig);
+			m_pCurrentUser.inputStream = odin_audio_stream_create(streamConfig);
 
-			error = odin_room_add_media(m_room, m_pMainClient.inputStream);
+			error = odin_room_add_media(m_room, m_pCurrentUser.inputStream);
 			if (odin_is_error(error))
 			{
 				print_error(error, "Failed to add media stream");
+
+			}
+
+			
+
+			error = odin_room_set_event_callback(m_room, handle_odin_event, NULL);
+			if (odin_is_error(error))
+			{
+				print_error(error, "Failed to set room event callback");
 			}
 
 			ODIN_LOG("Room %s Joined", room_name);
 		}
 
-		uint64_t CCryOdin::GetOdinUserId(const EntityId entityId)
+		void CCryOdin::RemoveLocalClientFromOdinRoom(const IUser& pEntity)
 		{
+			if (pEntity.m_pEntity)
+			{
+				odin_room_close(m_room);
+			}
+		}
+
+		uint64_t CCryOdin::GetOdinUserId(const IUser entityId)
+		{
+			if (m_pCurrentUser.m_pEntity)
+			{
+				return m_pCurrentUser.peerID;
+			}
+
 			return 0;
+		}
+
+		void CCryOdin::GetPeers(std::unordered_map<uint64_t, IUser>& map) const
+		{
+			map = m_usersMap;
+		}
+
+		void CCryOdin::OnUpdate(float frameTime)
+		{
+			if (m_pAudioSystem)
+			{
+				m_pAudioSystem->OnUpdate(frameTime);
+			}
 		}
 
 		void CCryOdin::handle_odin_event(OdinRoomHandle room, const OdinEvent* event, void* data)
@@ -285,152 +345,158 @@ namespace Cry
 		{
 			switch (event->tag)
 			{
-			case OdinEvent_RoomConnectionStateChanged:
-			{
-				const char* connection_state_name = get_name_from_connection_state(event->room_connection_state_changed.state);
-				const char* connection_state_reason = get_name_from_connection_state_change_reason(event->room_connection_state_changed.reason);
-
-				ODIN_LOG("Connection state changed to '%s' due to %s\n", connection_state_name, connection_state_reason);
-
-				// Handle connection timeouts and reconnects as we need to create a new input stream
-				if (event->room_connection_state_changed.reason == OdinRoomConnectionStateChangeReason_ConnectionLost)
+				case OdinEvent_RoomConnectionStateChanged:
 				{
-					m_pMainClient.inputStream = 0;
+					const char* connection_state_name = get_name_from_connection_state(event->room_connection_state_changed.state);
+					const char* connection_state_reason = get_name_from_connection_state_change_reason(event->room_connection_state_changed.reason);
 
-					if (event->room_connection_state_changed.state == OdinRoomConnectionState_Connected)
+					ODIN_LOG("Connection state changed to '%s' due to %s\n", connection_state_name, connection_state_reason);
+
+					// Handle connection timeouts and reconnects as we need to create a new input stream
+					if (event->room_connection_state_changed.reason == OdinRoomConnectionStateChangeReason_ConnectionLost)
 					{
-						OdinAudioStreamConfig audio_output_config;
-						audio_output_config.channel_count = 1;
-						audio_output_config.sample_rate = 48000;
+						m_pCurrentUser.inputStream = 0;
 
-						m_pMainClient.inputStream = odin_audio_stream_create(audio_output_config);
-						odin_room_add_media(room, m_pMainClient.inputStream);
+						ODIN_LOG("ODIN ROOM ADD MEDIA - inputStream 0");
 
-						//CCryOdinAudioDevice::Get()->SetInputStreamHandle(input_stream);
+						if (event->room_connection_state_changed.state == OdinRoomConnectionState_Connected)
+						{
+							OdinAudioStreamConfig audio_output_config{};
+							audio_output_config.channel_count = 1;
+							audio_output_config.sample_rate = 48000;
+
+							m_pCurrentUser.inputStream = odin_audio_stream_create(audio_output_config);
+							odin_room_add_media(room, m_pCurrentUser.inputStream);
+							ODIN_LOG("ODIN ROOM ADD MEDIA");
+						}
+					}
+
+					// Stop client if the room handle gets disconnected (e.g. due to room close, kick/ban or connection issues)
+					if (event->room_connection_state_changed.state == OdinRoomConnectionState_Disconnected)
+					{
+						if (event->room_connection_state_changed.reason != OdinRoomConnectionStateChangeReason_ClientRequested)
+						{
+							// ... need to add something here
+							m_pCurrentUser.inputStream = 0;
+							ODIN_LOG("ODIN ROOM MEDIA REMOVE");
+						}
 					}
 				}
-
-				// Stop client if the room handle gets disconnected (e.g. due to room close, kick/ban or connection issues)
-				if (event->room_connection_state_changed.state == OdinRoomConnectionState_Disconnected)
+				break;
+				case OdinEvent_Joined:
 				{
-					if (event->room_connection_state_changed.reason != OdinRoomConnectionStateChangeReason_ClientRequested)
+					const char* room_id = event->joined.room_id;
+					const char* customer = event->joined.customer;
+					const char* own_user_id = event->joined.own_user_id;
+					uint64_t peer_id = event->joined.own_peer_id;
+					m_pCurrentUser.peerID = peer_id;
+
+					// Print information about joined room to the console
+					ODIN_LOG("Room '%s' owned by '%s' joined successfully as Peer(%" PRIu64 ") with user ID '%s'\n", room_id, customer, peer_id, own_user_id);
+					ODIN_LOG("OdinID set to (%" PRIu64 ")\n", m_pCurrentUser.peerID = peer_id);
+
+				}
+				break;
+				case OdinEvent_PeerJoined:
+				{
+					const char* user_id = event->peer_joined.user_id;
+					uint64_t peer_id = event->peer_joined.peer_id;
+					size_t peer_user_data_len = event->peer_joined.peer_user_data_len;
+
+					// Print information about the peer to the console
+					ODIN_LOG("Peer(%" PRIu64 ") joined with user ID '%s'\n", peer_id, user_id);
+					// Print information about the peers user data to the console
+					ODIN_LOG("Peer(%" PRIu64 ") has user data with %zu bytes\n", peer_id, peer_user_data_len);
+
+					auto pEntity = gEnv->pEntitySystem->FindEntityByName("test_person");
+					if (pEntity)
 					{
-						//exit(1);
+						// convert user_id to EntityID
+						//auto entityId = std::atoi(user_id);
+						//IEntity* entity = gEnv->pEntitySystem->GetEntity(entityId);
+
+						IUser newUser(std::move(pEntity), peer_id, user_id);
+
+						m_usersMap.emplace(std::make_pair(peer_id, newUser)); // Probably just use emplace and allow std::map make the key
+					}
+					else {
+						ODIN_LOG("Unable to find");
+					}
+
+				}
+				break;
+				case OdinEvent_PeerLeft:
+				{
+					uint64_t peer_id = event->peer_left.peer_id;
+
+					for (auto& peer : m_usersMap)
+					{
+						if (peer.second.peerID == peer_id)
+						{
+							m_pAudioSystem->RemoveSoundSource(peer.second.inputStream, peer.second.m_pEntity->GetId());
+							m_usersMap.erase(peer.first);
+							break;
+						}
+					}
+
+				}
+				break;
+				case OdinEvent_PeerUserDataChanged:
+				{
+					uint64_t peer_id = event->peer_user_data_changed.peer_id;
+					size_t peer_user_data_len = event->peer_user_data_changed.peer_user_data_len;
+
+					// Print information about the peers user data to the console
+					ODIN_LOG("Peer(%" PRIu64 ") user data updated with %zu bytes\n", peer_id, peer_user_data_len);
+				}
+				break;
+				case OdinEvent_MediaAdded:
+				{
+					uint64_t peer_id = event->media_added.peer_id;
+					uint16_t media_id = get_media_id_from_handle(event->media_added.media_handle);
+
+					auto it = m_usersMap.find(peer_id);
+					if (it != m_usersMap.end())
+					{
+						ODIN_LOG("Media(%d) added by Peer(%" PRIu64 ") with EntityID (%i)\n", media_id, it->second.peerID, it->second.m_pEntity->GetId());
+						m_pAudioSystem->AddSoundSource(event->media_added.media_handle, it->second.m_pEntity->GetId(), room);
 					}
 				}
-
-			}
-			break;
-			case OdinEvent_Joined:
-			{
-				const char* room_id = event->joined.room_id;
-				const char* customer = event->joined.customer;
-				const char* own_user_id = event->joined.own_user_id;
-				uint64_t peer_id = event->joined.own_peer_id;
-				m_pMainClient.OdinID = peer_id;
-
-				// Print information about joined room to the console
-				ODIN_LOG("Room '%s' owned by '%s' joined successfully as Peer(%" PRIu64 ") with user ID '%s'\n", room_id, customer, peer_id, own_user_id);
-				ODIN_LOG("OdinID set to (%" PRIu64 ")\n", m_pMainClient.OdinID);
-
-			}
-			break;
-			case OdinEvent_PeerJoined:
-			{
-				const char* user_id = event->peer_joined.user_id;
-				uint64_t peer_id = event->peer_joined.peer_id;
-				size_t peer_user_data_len = event->peer_joined.peer_user_data_len;
-
-				// Print information about the peer to the console
-				ODIN_LOG("Peer(%" PRIu64 ") joined with user ID '%s'\n", peer_id, user_id);
-				// Print information about the peers user data to the console
-				ODIN_LOG("Peer(%" PRIu64 ") has user data with %zu bytes\n", peer_id, peer_user_data_len);
-
-				// convert user_id to EntityID
-				unsigned int var = std::atoi(user_id);
-				IEntity* temp = gEnv->pEntitySystem->GetEntity(var);
-
-				ICryOdinUser newUser(std::move(temp), peer_id, user_id);
-
-				m_usersMap.emplace(std::make_pair(peer_id, newUser)); // Probably just use emplace and allow std::map make the key
-
-			}
-			break;
-			case OdinEvent_PeerLeft:
-			{
-				uint64_t peer_id = event->peer_left.peer_id;
-				
-				for (auto& peer : m_usersMap)
+				break;
+				case OdinEvent_MediaRemoved:
 				{
-					if (peer.second.OdinID == peer_id)
+					uint64_t peer_id = event->media_removed.peer_id;
+					uint16_t media_id = get_media_id_from_handle(event->media_removed.media_handle);
+
+					auto it = m_usersMap.find(peer_id);
+					if (it != m_usersMap.end())
 					{
-						m_pAudioSystem->RemoveSoundSource(peer.second.inputStream, peer.second.pUserEntity->GetId());
-						m_usersMap.erase(peer.first);
-						break;
+						m_pAudioSystem->RemoveSoundSource(event->media_removed.media_handle, it->second.m_pEntity->GetId());
 					}
+					ODIN_LOG("Media(%d) removed by Peer(%" PRIu64 ")\n", media_id, peer_id);
 				}
-
-			}
-			break;
-			case OdinEvent_PeerUserDataChanged:
-			{
-				uint64_t peer_id = event->peer_user_data_changed.peer_id;
-				size_t peer_user_data_len = event->peer_user_data_changed.peer_user_data_len;
-
-				// Print information about the peers user data to the console
-				ODIN_LOG("Peer(%" PRIu64 ") user data updated with %zu bytes\n", peer_id, peer_user_data_len);
-			}
-			break;
-			case OdinEvent_MediaAdded:
-			{
-				uint64_t peer_id = event->media_added.peer_id;
-				uint16_t media_id = get_media_id_from_handle(event->media_added.media_handle);
-
-				auto it = m_usersMap.find(peer_id);
-				if (it != m_usersMap.end())
+				break;
+				case OdinEvent_MediaActiveStateChanged:
 				{
-					if (m_pAudioSystem)
+					//uint16_t media_id = get_media_id_from_handle(event->media_active_state_changed.media_handle);
+					uint64_t peer_id = event->media_active_state_changed.peer_id;
+					//const char* state = event->media_active_state_changed.active ? "started" : "stopped";
+					bool talking = event->media_active_state_changed.active ? true : false;
+
+					auto it = m_usersMap.find(peer_id);
+					if (it != m_usersMap.end())
 					{
-						ODIN_LOG("Media(%d) added by Peer(%" PRIu64 ") with EntityID (%i)\n", media_id, it->second.OdinID, it->second.pUserEntity->GetId());
-						m_pAudioSystem->AddSoundSource(event->media_added.media_handle, it->second.pUserEntity->GetId(), room);
-					}
-				}
-			}
-			break;
-			case OdinEvent_MediaRemoved:
-			{
-				uint64_t peer_id = event->media_removed.peer_id;
-				uint16_t media_id = get_media_id_from_handle(event->media_removed.media_handle);
-				
-				auto it = m_usersMap.find(peer_id);
-				if (it != m_usersMap.end())
-				{
-					if (m_pAudioSystem)
-					{
-						m_pAudioSystem->RemoveSoundSource(event->media_removed.media_handle, it->second.pUserEntity->GetId());
-					}
-				}
-				ODIN_LOG("Media(%d) removed by Peer(%" PRIu64 ")\n", media_id, peer_id);
-			}
-			break;
-			case OdinEvent_MediaActiveStateChanged:
-			{
-				uint16_t media_id = get_media_id_from_handle(event->media_active_state_changed.media_handle);
-				uint64_t peer_id = event->media_active_state_changed.peer_id;
-				const char* state = event->media_active_state_changed.active ? "started" : "stopped";
-				bool talking = event->media_active_state_changed.active ? true : false;
-				
-				auto it = m_usersMap.find(peer_id);
-				if (it != m_usersMap.end())
-				{
-					it->second.isTalking = talking;
-					it->second.isMuted = talking;
-				}
+						it->second.isTalking = talking;
+						it->second.isMuted = talking;
 
-				// Print information about the media activity update to the console
-				ODIN_LOG("Peer(%" PRIu64 ") %s sending data on Media(%d)\n", peer_id, state, media_id);
-			}
-			break;
+						ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id, it->second.isTalking ? "talking" : "stoppedTalked");
+					}
+					ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id,talking ? "talking" : "stoppedTalked");
+
+					// Print information about the media activity update to the console
+					//ODIN_LOG("Peer(%" PRIu64 ") %s sending data on Media(%d)\n", peer_id, state, media_id);
+				}
+				break;
 			}
 		}
 
@@ -473,22 +539,7 @@ namespace Cry
 			return odin_is_error(error) ? 0 : media_id;
 		}
 
-		void CCryOdin::ChangeGameStatus()
-		{
-			m_bGamePlayStarted = m_bGamePlayStarted ? false : true;
-		}
 
-		void CCryOdin::OnUpdate()
-		{
-			if (m_bGamePlayStarted)
-			{
-				m_pAudioSystem->OnUpdate(0.f);
-			}
-		}
 
-		void CCryOdin::GetPeers(std::unordered_map<uint64_t, ICryOdinUser>& map) const
-		{
-			map = m_usersMap;
-		}
 	}
 }

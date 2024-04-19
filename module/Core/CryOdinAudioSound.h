@@ -2,6 +2,7 @@
 
 #include <miniaudio.h>
 #include <odin.h>
+#include <ICryOdinAudioDevices.h>
 
 namespace Cry
 {
@@ -25,10 +26,13 @@ namespace Cry
 			float GetVolume() const { return ma_sound_get_volume(&m_sound); }
 			ma_sound GetSound() const { return m_sound; }
 
+			Vec3 GetSoundPosition() const { return m_soundPosition; }
+			void SetSoundPosition(Vec3 position) { m_soundPosition = position; }
 
+			ma_sound m_sound;
 		private:
 			int m_id;
-			ma_sound m_sound;
+			Vec3 m_soundPosition{ ZERO };
 		};
 	}
 }

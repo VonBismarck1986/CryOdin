@@ -16,8 +16,12 @@ namespace Cry
 			CCryOdinAudioListener() = default;
 			~CCryOdinAudioListener() = default;
 
-			void CreateListener(ma_engine* engine, CryAudio::CTransformation const& transformation) {}
-			void OnUpdate(float frameTime) {}
+			void CreateListener(ma_engine* engine, CryAudio::CTransformation const& transformation);
+			void DestroyListener(ma_engine* engine, int listenerIndex);
+
+			void SetOcclusion() {}
+
+			void OnUpdate(float frameTime);
 		private:
 
 		};
