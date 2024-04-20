@@ -13,9 +13,9 @@ Plugin to be able to used without issues.
 
 # How to use plugin 
 
-Right now `CryOdin` doesn't use CryAudio System ( Cryengine audio system ). Instead it uses [Miniaudio](https://miniaud.io/index.html). This is too much of issue but, it does mean there's a lot to know for you end-user in how to do Audio programming. Right the API of `CryOdin` handles most use cases of this. So it shouldn't be problem to plug in the CryOdin and get striaght into it.
+Right now `CryOdin` doesn't use CryAudio System ( Cryengine audio system ). Instead it uses [Miniaudio](https://miniaud.io/index.html). This isn't too much of issue but, it does mean this plugin will take a while to be up to par with CryAudio. Right now the API of `CryOdin` handles most use cases of this. So it shouldn't be problem to plug CryOdin and get striaght into it.
 
-If you want to build `CryOdin` on you're own you'll need to have Odin SDK from [OdinSDK](https://github.com/4Players/odin-sdk) and create a folder in `Cryengine SDKs` directory called  `Odin`. Once done you'll need to add `CryOdin` plugin into the `CryPlugins folders`. From there you'll add this line of code into the CMakeList.txt that is located in the `CryPlugins folder`.
+If you want to build `CryOdin` you'll need to have Odin SDK from [OdinSDK](https://github.com/4Players/odin-sdk) and create a folder in `Cryengine SDKs` directory called  `Odin`. Once done you'll need to add `CryOdin` plugin into the `CryPlugins folders`. From there you'll add this line of code into the CMakeList.txt that is located in the `CryPlugins folder`.
 
 ### CMakeList.txt located in CryPlugins Folder 
 ```CMake
@@ -55,18 +55,18 @@ add_subdirectory(CryOdin/Module) ## this what you add
 ```
 You should be able to run now `cry_cmake.exe` and you'll see CryOdin.
 
-### connecting with project
+### Connecting with CRYENGINE Source Code
 
-When you're able to build `CryOdin` with `CRYENGINE`, adding with your own project is striaght forward. In your Game.cryproject you'll need add this with plugins 
+When you're able to build `CryOdin` with `CRYENGINE`, adding it with your own project is striaght forward. In your Game.cryproject you'll need add this with plugins 
 ```json
 { "guid": "", "type": "EType::Native", "path": "CryOdin" },
 ``` 
 Once add you should be run your project with CryOdin loaded in.
 
 ### Using Binary instead of building.
-If you just want to use the plugin without building it you'll still need follow the directions above but, instead of running `cry_cmake.exe` you can just build and run your project like you'll normally do. Just make sure to go to [Release](https://github.com/VonBismarck1986/CryOdin/releases/tag/0.0.1) and download the Binary - CryOdin.dll and put inside of `Cryengine/bin/win_x64` folder
+If you just want to use the plugin without building it you'll still need follow the directions above but, instead of running `cry_cmake.exe` you can just build and run your project like you'll normally do. Just make sure to go to [Release](https://github.com/VonBismarck1986/CryOdin/releases) and download the Binary - CryOdin.dll and put inside of `Cryengine/bin/win_x64` folder.
 
-
+Remember Not only does CryOdin.dll must in `bin\win_x64` of `CRYENGINE` so does `odin.dll` from [OdinSDK](https://github.com/4Players/odin-sdk) has to be in there too!
 
 # CryOdin API
 Now that project is setup and CryOdin is loaded how do we use it? 
