@@ -470,11 +470,9 @@ namespace Cry
 						it->second.mediaStream = media_id;
 
 						CCryOdinAudioSound* sound = m_pAudioSystem->CreateSound(it->second);
-						//m_pAudioSystem->InitSound(*sound);
 						m_sounds.push_back(std::move(sound));
 
-						//StartUpSounds();
-						//m_pAudioSystem->AddSoundSource(event->media_added.media_handle, it->second.m_pEntity->GetId(), room);
+				
 						ODIN_LOG("Media(%d) added by Peer(%" PRIu64 ") with EntityID (%i)\n", media_id, it->second.peerID, it->second.m_pEntity->GetId());
 					}
 					else {

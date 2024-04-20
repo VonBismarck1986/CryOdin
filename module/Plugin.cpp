@@ -81,34 +81,21 @@ void Cry::Odin::CCryOdinPlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparm
 
 			EnableUpdate(IEnginePlugin::EUpdateStep::BeforeRender, true);
 			EnableUpdate(IEnginePlugin::EUpdateStep::MainUpdate, true);
-
-			OdinApmConfig conifg{};
 			
 			IActionMapManager* pActionMapManager = gEnv->pGameFramework->GetIActionMapManager();
 
-			// Create the action map in which our action will reside
 			IActionMap* pActionMap = pActionMapManager->CreateActionMap(m_szMyActionMapName);
-			// Register a listener to receive callbacks when actions in our action map are triggered
 			pActionMapManager->AddExtraActionListener(this, m_szMyActionMapName);
 
 			// Register the action in the group
 			pActionMap->CreateAction(m_myActionId);
 
-			// Now define the first input with which the user can trigger the input
 			SActionInput input;
-			// Define that this input is triggered with the keyboard or mouse
 			input.inputDevice = eAID_KeyboardMouse;
-			// Set the input to "enter"
-			// defaultInput is used in case of future rebinding by the end-user at runtime
 			input.input = input.defaultInput = "enter";
-			// Determine the activation modes we want to listen for
 			input.activationMode = eIS_Pressed | eIS_Released;
 
-			// Now bind the input to the action we created earlier
 			pActionMap->AddAndBindActionInput(m_myActionId, input);
-
-			// Make sure that the action map is enabled by default
-			// This function can also be used to toggle action maps at runtime, for example to disable vehicle inputs when exiting
 			pActionMap->Enable(true);
 		}
 		break;

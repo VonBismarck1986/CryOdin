@@ -84,8 +84,8 @@ namespace Cry
 			odin_data_source_seek,
 			odin_data_source_get_data_format,
 			odin_data_source_get_cursor,
-			odin_data_source_get_length,
-			odin_data_source_onSetLooping,
+			NULL,   /* onGetLength. There's no notion of a length. */
+			NULL,   /* onSetLooping */
 			0
 		};
 
@@ -103,6 +103,7 @@ namespace Cry
 			}
 
 			pDataSource->config = *pConfig;
+
 
 			return MA_SUCCESS;
 		}

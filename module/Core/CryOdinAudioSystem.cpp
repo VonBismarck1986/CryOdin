@@ -10,6 +10,8 @@
 
 #include "Utils/MiniAudioHelpers.h"
 
+#include <CryRenderer/IRenderAuxGeom.h>
+
 namespace Cry
 {
 	namespace Odin
@@ -72,6 +74,7 @@ namespace Cry
 		void CCryOdinAudioSystem::OnUpdate(float frameTime)
 		{
 			UpdateListener(frameTime);
+			DrawDebug(frameTime);
 		}
 
 		ma_engine* CCryOdinAudioSystem::GetAudioEngine()
@@ -126,6 +129,17 @@ namespace Cry
 
 			ma_engine_listener_set_direction(&g_engine, 0, dir.x, dir.y, dir.z);
 			ma_engine_listener_set_position(&g_engine, 0, pos.x, pos.y, pos.z);
+
+
+		}
+
+		void CCryOdinAudioSystem::DrawDebug(float const frameTime)
+		{
+			if (m_user.m_pEntity)
+			{
+				Vec3 pos = Vec3(ma_engine_listener_get_position(&g_engine,0).x, ma_engine_listener_get_position(&g_engine, 0).y, ma_engine_listener_get_position(&g_engine, 0).z);
+				gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(pos,1.f,Col_Red);
+			}
 		}
 	}
 }

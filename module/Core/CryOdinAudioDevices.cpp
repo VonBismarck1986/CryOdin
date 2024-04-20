@@ -131,7 +131,7 @@ namespace Cry
 
 			g_datasource.emplace(std::make_pair(count, datasource[count]));
 
-			ODIN_LOG("Sound Started");
+			ODIN_LOG("Sound Created");
 		}
 
 		void CCryOdinAudioDevice::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)

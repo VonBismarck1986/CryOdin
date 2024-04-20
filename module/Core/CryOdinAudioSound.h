@@ -27,7 +27,6 @@ namespace Cry
 				m_sound = sound;
 			}
 
-
 			virtual ma_sound* GetSound() override;
 			virtual void SetSoundVolume(float fAmount) override;
 			virtual float GetSoundVolume() const override;
@@ -41,8 +40,12 @@ namespace Cry
 
 			virtual void PlaySound() override;
 			virtual void StopSound() override;
+
+		protected:
+			void DebugDraw(float const frameTime);
+
 		private:
-			ma_sound m_sound{};
+			ma_sound m_sound;
 			IUser m_user;
 			CryAudio::CTransformation const m_transform;
 		};

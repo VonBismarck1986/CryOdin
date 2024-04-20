@@ -35,7 +35,7 @@ namespace Cry
 			static CCryOdinAudioSystem* s_AudioSystem;
 
 			void UpdateListener(float const frameTime);
-			
+			void DrawDebug(float const frameTime);
 		private:
 			IUser m_user;
 			std::vector<IUser> m_peers;
