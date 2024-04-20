@@ -20,7 +20,7 @@ namespace Cry
 				, inputStream(0)
 				, mediaStream(0)
 				, apmConfig(OdinApmConfig())
-				, listenerPosition(ZERO)
+				, listenerPosition(CryAudio::CTransformation::GetEmptyObject())
 			{}
 
 			IUser(IEntity* pEntity, uint16_t peer_id, const char* user_name)
@@ -32,7 +32,7 @@ namespace Cry
 				, inputStream(0)
 				, mediaStream(0)
 				, apmConfig(OdinApmConfig())
-				, listenerPosition(ZERO)
+				, listenerPosition(CryAudio::CTransformation::GetEmptyObject())
 			{}
 
 			IUser(IEntity* pEntity, uint16_t peer_id)
@@ -44,7 +44,7 @@ namespace Cry
 				, inputStream(0)
 				, mediaStream(0)
 				, apmConfig(OdinApmConfig())
-				, listenerPosition(ZERO)
+				, listenerPosition(CryAudio::CTransformation::GetEmptyObject())
 			{}
 
 			IUser(IEntity* pEntity)
@@ -56,7 +56,7 @@ namespace Cry
 				, inputStream(0)
 				, mediaStream(0)
 				, apmConfig(OdinApmConfig())
-				, listenerPosition(ZERO)
+				, listenerPosition(CryAudio::CTransformation::GetEmptyObject())
 			{}
 
 
@@ -64,12 +64,13 @@ namespace Cry
 			ILINE bool IsTalking() const { return isTalking; }
 			ILINE bool IsMuted() const { return isMuted; }
 			ILINE uint64_t OdinPeerID() const { return peerID; }
+			ILINE void SetTransformForListener(CryAudio::CTransformation& transform) { listenerPosition = transform; }
 
 			IEntity* m_pEntity;
 			const char* userName;
 			bool isTalking;
 			bool isMuted;
-			Vec3 listenerPosition;
+			CryAudio::CTransformation listenerPosition;
 
 			uint64_t peerID; // Odin Peer ID
 			OdinMediaStreamHandle inputStream; // default user input ( mic )

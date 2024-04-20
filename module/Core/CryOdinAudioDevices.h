@@ -1,71 +1,55 @@
 #pragma once
-#include <ICryOdinAudioDevices.h>
 
+#include <ICryOdinAudioDevices.h>
+#include <ICryOdinAudioSound.h>
 
 namespace Cry
 {
 	namespace Odin
 	{
+		struct OdinDataSource;
+		class CCryOdinAudioSound;
 
-		class CCryOdinAudioSystem final : public ICryOdinAudioSystem
+		class CCryOdinAudioDevice final : public ICryOdinAudioDevice
 		{
 		public:
-			CCryOdinAudioSystem();
-			virtual ~CCryOdinAudioSystem() = default;
+			CCryOdinAudioDevice();
+			virtual ~CCryOdinAudioDevice() = default;
 
-			virtual bool Init() override;
-			virtual void Shutdown() override;
-			virtual void OnUpdate(float frameTime) override;
+			inline static CCryOdinAudioDevice& GetDevice() { return *pAudioDevice; };
 
-			// Input/Output Devices
+			virtual ma_device GetDefaultInputDevice() const override;
+			virtual ma_device GetDefaultOutputDevice() const override;
 
-			virtual SCryOdinAudioDevicesConfig GetAudioDeviceConfig() const override { return m_audioDeviceConfig; }
+			virtual ma_device_info* GetAllInputDevices() const override;
+			virtual ma_device_info* GetAllOutputDevices() const override;
 
-			virtual ma_device_info* GetAllOutputDevices() const override { return m_audioDeviceConfig.input_devices; }
-			virtual ma_device_info* GetAllInputDevices() const override { return m_audioDeviceConfig.output_devices; }
+			virtual int GetNumberOfInputDevices() const override;
+			virtual int GetNumberOfOutputDevices() const override;
 
-			virtual ma_device GetCurrentInputDevice() const override { return m_audioDeviceConfig.input; }
-			virtual ma_device GetCurrentOutDevice() const override { return m_audioDeviceConfig.output; }
+			virtual void ChangeInputDevice(int index) override;
+			virtual void ChangeOutputDevice(int index) override;
 
-			virtual const char* GetCurrentInputDeviceName() const override { return m_audioDeviceConfig.input.capture.name; }
-			virtual const char* GetCurrentOutputDeviceName() const override { return m_audioDeviceConfig.output.playback.name; }
+			virtual void SetInputStreamConfig(const OdinAudioStreamConfig& config) override { m_config.audio_input_config = config; }
+			virtual void SetOutputStreamConfig(const OdinAudioStreamConfig& config) override { m_config.audio_output_config = config; }
+			virtual SCryOdinAudioDevicesConfig GetAudioDeviceConfig() const override { return m_config; }
 
-			virtual void SelectInputDevice(int index) override {}
-			virtual void SelectOutputDevice(int index) override {}
-
-			virtual int GetNumberOfInputDevices() const override { return m_audioDeviceConfig.input_devices_count; }
-			virtual int GetNumberOfOutputDevices() const override { return m_audioDeviceConfig.output_devices_count; }
-
-			virtual void AddSoundSource(OdinMediaStreamHandle stream, EntityId entityID, OdinRoomHandle room) override;
-			virtual void RemoveSoundSource(OdinMediaStreamHandle stream, EntityId entityID) override;
-
-			// this portion is Sound / Volume controls
-
-			virtual float GetSoundVolumeFromPlayer(uint64_t peerID) const override { return 0.0f; }
-			virtual void MutePlayer(uint64_t peerID) override {}
-			virtual void SetVolumeForPlayer(uint64_t peerID, float fAmount) override {}
-
-			void AddLocalPlayer(const IUser& user) { m_user = user; }
-
-			/// DEBUG / MISC
-			virtual void CreateSoundSource(const EntityId pEntity, OdinMediaStreamHandle stream, OdinRoomHandle room) override {}
-
-
-			void InsertOutputStream(OdinMediaStreamHandle stream);
-			void RemoveOutputStream(size_t index);
+			void AddLocalUser(const IUser& user) { m_user = user; }
+			void SoundCreated(ma_engine* engine, CCryOdinAudioSound* sound);
 
 		protected:
+			static CCryOdinAudioDevice* pAudioDevice;
+
 			static void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
 			void process_audio_data(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
 
+
 			void GetAudioDevices(SCryOdinAudioDevicesConfig* devices);
 			void FreeAudioDevices(SCryOdinAudioDevicesConfig* devices);
-
-			void DrawDebug(float frameTime);
-			void UpdateClientListener();
 		private:
-			SCryOdinAudioDevicesConfig m_audioDeviceConfig = SCryOdinAudioDevicesConfig();
+			SCryOdinAudioDevicesConfig m_config;
 			IUser m_user;
+			std::unordered_map<int, OdinDataSource> m_dataSources;
 		};
 	}
 }

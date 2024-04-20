@@ -28,6 +28,8 @@ add_sources("CryOdin_Interface.cpp"
 	"../interface/ICryOdinAudioDevices.h"
 	"../interface/ICryOdinUser.h"
 	"../interface/ICryOdinAudioHandle.h"
+	"../interface/ICryOdinAudioSystem.h"
+	"../interface/ICryOdinAudioSound.h"
 )
 
 add_sources("CryOdin_Core.cpp"
@@ -44,6 +46,10 @@ add_sources("CryOdin_Core.cpp"
 	"Core/CryOdinAudioSound.h"
 	"Core/CryOdinAudioDataSource.cpp"
 	"Core/CryOdinAudioDataSource.h"
+	"Core/CryOdinAudioSystem.cpp"
+	"Core/CryOdinAudioSystem.h"
+	"Core/CryOdinAudioOcclusion.cpp"
+	"Core/CryOdinAudioOcclusion.h"
 )
 
 add_sources("CryOdin_Utils.cpp"

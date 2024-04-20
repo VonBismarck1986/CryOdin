@@ -1,7 +1,9 @@
 #include "StdAfx.h"
 #include "CryOdin.h"
 
-#include "CryOdinAudioDevices.h"
+#include "CryOdinAudioSystem.h"
+#include "CryOdinAudioSound.h"
+
 #include "Plugin.h"
 
 namespace Cry
@@ -334,6 +336,14 @@ namespace Cry
 			{
 				m_pAudioSystem->OnUpdate(frameTime);
 			}
+
+			if (!m_sounds.empty())
+			{
+				for (auto& it : m_sounds)
+				{
+					it->OnUpdate(frameTime);
+				}
+			}
 		}
 
 		void CCryOdin::handle_odin_event(OdinRoomHandle room, const OdinEvent* event, void* data)
@@ -411,13 +421,10 @@ namespace Cry
 					auto pEntity = gEnv->pEntitySystem->FindEntityByName("test_person");
 					if (pEntity)
 					{
-						// convert user_id to EntityID
-						//auto entityId = std::atoi(user_id);
-						//IEntity* entity = gEnv->pEntitySystem->GetEntity(entityId);
-
 						IUser newUser(std::move(pEntity), peer_id, user_id);
-
 						m_usersMap.emplace(std::make_pair(peer_id, newUser)); // Probably just use emplace and allow std::map make the key
+
+						ODIN_LOG("Placed user in id(%d)", peer_id);
 					}
 					else {
 						ODIN_LOG("Unable to find");
@@ -433,7 +440,7 @@ namespace Cry
 					{
 						if (peer.second.peerID == peer_id)
 						{
-							m_pAudioSystem->RemoveSoundSource(peer.second.inputStream, peer.second.m_pEntity->GetId());
+							//m_pAudioSystem->RemoveSoundSource(peer.second.inputStream, peer.second.m_pEntity->GetId());
 							m_usersMap.erase(peer.first);
 							break;
 						}
@@ -455,11 +462,23 @@ namespace Cry
 					uint64_t peer_id = event->media_added.peer_id;
 					uint16_t media_id = get_media_id_from_handle(event->media_added.media_handle);
 
+					ODIN_LOG("Looking for (%d)...", peer_id);
+
 					auto it = m_usersMap.find(peer_id);
 					if (it != m_usersMap.end())
 					{
+						it->second.mediaStream = media_id;
+
+						CCryOdinAudioSound* sound = m_pAudioSystem->CreateSound(it->second);
+						//m_pAudioSystem->InitSound(*sound);
+						m_sounds.push_back(std::move(sound));
+
+						//StartUpSounds();
+						//m_pAudioSystem->AddSoundSource(event->media_added.media_handle, it->second.m_pEntity->GetId(), room);
 						ODIN_LOG("Media(%d) added by Peer(%" PRIu64 ") with EntityID (%i)\n", media_id, it->second.peerID, it->second.m_pEntity->GetId());
-						m_pAudioSystem->AddSoundSource(event->media_added.media_handle, it->second.m_pEntity->GetId(), room);
+					}
+					else {
+						ODIN_LOG("Unable to find (%d)", peer_id);
 					}
 				}
 				break;
@@ -471,7 +490,7 @@ namespace Cry
 					auto it = m_usersMap.find(peer_id);
 					if (it != m_usersMap.end())
 					{
-						m_pAudioSystem->RemoveSoundSource(event->media_removed.media_handle, it->second.m_pEntity->GetId());
+						//m_pAudioSystem->RemoveSoundSource(event->media_removed.media_handle, it->second.m_pEntity->GetId());
 					}
 					ODIN_LOG("Media(%d) removed by Peer(%" PRIu64 ")\n", media_id, peer_id);
 				}
@@ -492,9 +511,6 @@ namespace Cry
 						ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id, it->second.isTalking ? "talking" : "stoppedTalked");
 					}
 					ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id,talking ? "talking" : "stoppedTalked");
-
-					// Print information about the media activity update to the console
-					//ODIN_LOG("Peer(%" PRIu64 ") %s sending data on Media(%d)\n", peer_id, state, media_id);
 				}
 				break;
 			}
@@ -537,6 +553,17 @@ namespace Cry
 			uint16_t media_id;
 			int error = odin_media_stream_media_id(handle, &media_id);
 			return odin_is_error(error) ? 0 : media_id;
+		}
+
+		void CCryOdin::StartUpSounds()
+		{
+			for (auto it : m_sounds)
+			{
+				if (it)
+				{
+					//m_pAudioSystem->InitSound(static_cast<CCryOdinAudioSound*>(it));
+				}
+			}
 		}
 
 
