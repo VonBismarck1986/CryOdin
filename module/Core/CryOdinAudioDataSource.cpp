@@ -8,6 +8,8 @@ namespace Cry
 
 		static ma_result odin_read_pcm_frames(OdinDataSource* pOdinDataSource, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead)
 		{
+			size_t sampleCount = 0;
+
 			if (pFramesRead != NULL) {
 				*pFramesRead = 0;
 			}
@@ -24,13 +26,13 @@ namespace Cry
 			{
 				if (pOdinDataSource->config.media_handle != NULL)
 				{
-					int sampleCount = frameCount * pOdinDataSource->config.channels;
+					sampleCount = frameCount * pOdinDataSource->config.channels;
 					odin_audio_read_data(pOdinDataSource->config.media_handle, (float*)pFramesOut, sampleCount);
 				}
 			}
 
 			if (pFramesRead != NULL) {
-				*pFramesRead = frameCount;
+				*pFramesRead = sampleCount;
 			}
 
 			return MA_SUCCESS;
@@ -38,7 +40,7 @@ namespace Cry
 
 		ma_result odin_data_source_read(ma_data_source* pDataSource, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead)
 		{
-			return odin_read_pcm_frames((OdinDataSource*)pDataSource,pFramesOut,frameCount,pFramesRead);
+			return odin_read_pcm_frames((OdinDataSource*)pDataSource, pFramesOut, frameCount, pFramesRead);
 		}
 
 		ma_result odin_data_source_seek(ma_data_source* pDataSource, ma_uint64 frameIndex)
@@ -81,9 +83,9 @@ namespace Cry
 		static ma_data_source_vtable g_my_data_source_vtable =
 		{
 			odin_data_source_read,
-			odin_data_source_seek,
+			NULL,
 			odin_data_source_get_data_format,
-			odin_data_source_get_cursor,
+			NULL,
 			NULL,   /* onGetLength. There's no notion of a length. */
 			NULL,   /* onSetLooping */
 			0

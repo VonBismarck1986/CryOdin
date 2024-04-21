@@ -104,6 +104,9 @@ namespace Cry
 			CCryOdinAudioSound* sound = new CCryOdinAudioSound(user, CryAudio::CTransformation(mat));
 			if (sound)
 			{
+				sound->SetMediaHandle(user.mediaStream);
+				ODIN_LOG("Media Handle for sound set to %d", sound->GetMediaHandle());
+
 				if (g_pAudiodevices)
 				{
 					g_pAudiodevices->GetDevice().SoundCreated(&g_engine, sound);

@@ -17,9 +17,9 @@ namespace Cry
 
 		struct OdinDataSourceConfig
 		{
-			OdinMediaStreamHandle media_handle;
-			ma_format format;
-			ma_uint32 channels;
+			OdinMediaStreamHandle media_handle = 0;
+			ma_format format = ma_format_f32;
+			ma_uint32 channels = 2;
 		};
 
 		struct OdinDataSource

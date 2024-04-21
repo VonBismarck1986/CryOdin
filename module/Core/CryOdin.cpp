@@ -511,6 +511,7 @@ namespace Cry
 
 						ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id, it->second.isTalking ? "talking" : "stoppedTalked");
 					}
+
 					ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id,talking ? "talking" : "stoppedTalked");
 				}
 				break;

@@ -32,6 +32,8 @@ namespace Cry
 			virtual float GetSoundVolume() const override;
 			virtual void OnUpdate(float const fFrameTime) override;
 			virtual OdinMediaStreamHandle GetMediaHandle() const override { return m_user.mediaStream; }
+			virtual void SetMediaHandle(OdinMediaStreamHandle handleID) override { m_user.mediaStream = handleID; }
+
 			virtual uint64_t GetSoundID() const override { return m_user.peerID; }
 
 			virtual void InitSound(ma_engine* engine, OdinDataSource* pDataSource) override;

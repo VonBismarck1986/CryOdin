@@ -16,7 +16,7 @@ namespace Cry
 
 		void CCryOdinAudioSound::SetSoundVolume(float fAmount)
 		{
-
+			ma_sound_set_volume(&m_sound, ma_volume_db_to_linear(fAmount));
 		}
 
 		float CCryOdinAudioSound::GetSoundVolume() const
@@ -26,6 +26,7 @@ namespace Cry
 
 		void CCryOdinAudioSound::OnUpdate(float const fFrameTime)
 		{
+			/* Might be wondering why updating per-frame , since this locked to person and said can move at anytime best to keep "synced" */
 			m_transform = m_user.m_pEntity->GetWorldTM();
 
 			ma_sound_set_position(&m_sound, m_transform.GetPosition().x, m_transform.GetPosition().y, m_transform.GetPosition().z);
@@ -65,10 +66,10 @@ namespace Cry
 		void CCryOdinAudioSound::DebugDraw(float const frameTime)
 		{
 			// Position
-			gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(m_transform.GetPosition(),1.f,Col_Blue);
+			gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(m_transform.GetPosition(), 1.f, Col_Blue);
 
 			// Direction
-			gEnv->pRenderer->GetIRenderAuxGeom()->DrawLine(m_transform.GetPosition(),Col_BlueViolet, m_transform.GetForward() * 2,Col_BlueViolet,1.5f);
+			gEnv->pRenderer->GetIRenderAuxGeom()->DrawLine(m_transform.GetPosition(), Col_BlueViolet, m_transform.GetForward() * 1.2f, Col_BlueViolet,1.5f);
 		}
 	}
 }

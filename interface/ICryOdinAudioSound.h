@@ -19,6 +19,7 @@ namespace Cry
 			virtual float GetSoundVolume() const = 0;
 			virtual void OnUpdate(float const fFrameTime) = 0;
 			virtual OdinMediaStreamHandle GetMediaHandle() const = 0;
+			virtual void SetMediaHandle(OdinMediaStreamHandle handleID) = 0;
 			virtual uint64_t GetSoundID() const = 0;
 
 			virtual void InitSound(ma_engine* engine, OdinDataSource* pDataSource) = 0;

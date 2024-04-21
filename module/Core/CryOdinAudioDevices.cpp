@@ -119,14 +119,16 @@ namespace Cry
 		{
 			auto count = sound->GetSoundID();
 
-			OdinDataSourceConfig config{};
+			OdinDataSourceConfig config;
 			config.channels = 2;
 			config.format = ma_format_f32;
-			config.media_handle = sound->GetMediaHandle();
+			config.media_handle = std::move(sound->GetMediaHandle());
+
+			ODIN_LOG("Media Handle %d set for DataSource", config.media_handle);
 
 			odin_data_source_init(&config, &datasource[count]);
 
-			sound->InitSound(engine,&datasource[count]);
+			sound->InitSound(engine, &datasource[count]);
 			sound->PlaySound();
 
 			g_datasource.emplace(std::make_pair(count, datasource[count]));
