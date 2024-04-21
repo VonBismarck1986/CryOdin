@@ -99,7 +99,9 @@ namespace Cry
 
 		CCryOdinAudioSound* CCryOdinAudioSystem::CreateSound(const IUser& user)
 		{
-			CCryOdinAudioSound* sound = new CCryOdinAudioSound(user, CryAudio::CTransformation::GetEmptyObject());
+			auto& mat = user.m_pEntity->GetWorldTM();
+
+			CCryOdinAudioSound* sound = new CCryOdinAudioSound(user, CryAudio::CTransformation(mat));
 			if (sound)
 			{
 				if (g_pAudiodevices)

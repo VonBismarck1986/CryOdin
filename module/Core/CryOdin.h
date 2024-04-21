@@ -12,6 +12,7 @@ namespace Cry
 	namespace Odin
 	{
 		class CCryOdinAudioSystem;
+		class CCryOdinAudioSound;
 
 		class CCryOdin final
 			: public ICryOdin
@@ -46,6 +47,8 @@ namespace Cry
 
 			Sounds GetSounds() const { return m_sounds; }
 		protected:
+			static CCryOdin* s_instance;
+
 			static void handle_odin_event(OdinRoomHandle room, const OdinEvent* event, void* data);
 			void odinEvent(OdinRoomHandle room, const OdinEvent* event, void* data);
 
@@ -53,8 +56,6 @@ namespace Cry
 			const char* get_name_from_connection_state(OdinRoomConnectionState state);
 			uint16_t get_media_id_from_handle(OdinMediaStreamHandle handle);
 
-
-			void StartUpSounds();
 		private:
 			CryFixedStringT<128> m_AccessKey; 
 			CryFixedStringT<512> m_RoomToken;

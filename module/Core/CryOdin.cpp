@@ -10,7 +10,9 @@ namespace Cry
 {
 	namespace Odin
 	{
-		static std::unique_ptr<CCryOdin> g_pOdin;
+		std::vector<CCryOdinAudioSound*> m_vSounds;
+		CCryOdin* CCryOdin::CCryOdin::s_instance = nullptr;
+
 
 		CCryOdin::CCryOdin()
 			: m_AccessKey("AX907gsvRoGiz9qqhupOleCfR8q1BYE+8LcKwfgbGFqk") // for testing
@@ -20,9 +22,9 @@ namespace Cry
 		{
 			gEnv->pSystem->GetISystemEventDispatcher()->RegisterListener(this, "Odin_SDK");
 
-			if (!g_pOdin)
+			if (!s_instance)
 			{
-				g_pOdin = std::make_unique<CCryOdin>(*this);
+				s_instance = this;
 			}
 
 			m_pAudioSystem = new CCryOdinAudioSystem();
@@ -36,7 +38,7 @@ namespace Cry
 
 		CCryOdin* CCryOdin::Get()
 		{
-			return g_pOdin.get();
+			return s_instance;
 		}
 
 		bool CCryOdin::Init(const char* accessKey)
@@ -86,9 +88,9 @@ namespace Cry
 
 			odin_shutdown();
 
-			if (g_pOdin)
+			if (s_instance)
 			{
-				g_pOdin.release();
+				s_instance = nullptr;
 			}
 		}
 
@@ -337,9 +339,9 @@ namespace Cry
 				m_pAudioSystem->OnUpdate(frameTime);
 			}
 
-			if (!m_sounds.empty())
+			if (!m_vSounds.empty())
 			{
-				for (auto& it : m_sounds)
+				for (auto& it : m_vSounds)
 				{
 					it->OnUpdate(frameTime);
 				}
@@ -348,7 +350,7 @@ namespace Cry
 
 		void CCryOdin::handle_odin_event(OdinRoomHandle room, const OdinEvent* event, void* data)
 		{
-			g_pOdin->odinEvent(room, event, data);
+			s_instance->odinEvent(room, event, data);
 		}
 
 		void CCryOdin::odinEvent(OdinRoomHandle room, const OdinEvent* event, void* data)
@@ -472,6 +474,7 @@ namespace Cry
 						CCryOdinAudioSound* sound = m_pAudioSystem->CreateSound(it->second);
 						m_sounds.push_back(std::move(sound));
 
+						m_vSounds.push_back(sound);
 				
 						ODIN_LOG("Media(%d) added by Peer(%" PRIu64 ") with EntityID (%i)\n", media_id, it->second.peerID, it->second.m_pEntity->GetId());
 					}
@@ -551,17 +554,6 @@ namespace Cry
 			uint16_t media_id;
 			int error = odin_media_stream_media_id(handle, &media_id);
 			return odin_is_error(error) ? 0 : media_id;
-		}
-
-		void CCryOdin::StartUpSounds()
-		{
-			for (auto it : m_sounds)
-			{
-				if (it)
-				{
-					//m_pAudioSystem->InitSound(static_cast<CCryOdinAudioSound*>(it));
-				}
-			}
 		}
 
 

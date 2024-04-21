@@ -26,7 +26,8 @@ namespace Cry
 
 		void CCryOdinAudioSound::OnUpdate(float const fFrameTime)
 		{
-			ODIN_LOG("Updating sound");
+			m_transform = m_user.m_pEntity->GetWorldTM();
+
 			ma_sound_set_position(&m_sound, m_transform.GetPosition().x, m_transform.GetPosition().y, m_transform.GetPosition().z);
 			ma_sound_set_direction(&m_sound, m_transform.GetForward().x, m_transform.GetForward().y, m_transform.GetForward().z);
 
@@ -42,6 +43,9 @@ namespace Cry
 		{
 			ma_sound_init_from_data_source(engine, pDataSource, 0, NULL, &m_sound);
 			ma_sound_set_looping(&m_sound, true);
+			ma_sound_set_attenuation_model(&m_sound, ma_attenuation_model_linear);
+			ma_sound_set_directional_attenuation_factor(&m_sound, 2.5f);
+			ma_sound_set_cone(&m_sound, 0.5f, 1.5f, 0.95f);
 
 			ma_sound_set_position(&m_sound, m_transform.GetPosition().x, m_transform.GetPosition().y, m_transform.GetPosition().z);
 			ma_sound_set_direction(&m_sound, m_transform.GetForward().x, m_transform.GetForward().y, m_transform.GetForward().z);
@@ -60,7 +64,11 @@ namespace Cry
 
 		void CCryOdinAudioSound::DebugDraw(float const frameTime)
 		{
+			// Position
 			gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(m_transform.GetPosition(),1.f,Col_Blue);
+
+			// Direction
+			gEnv->pRenderer->GetIRenderAuxGeom()->DrawLine(m_transform.GetPosition(),Col_BlueViolet, m_transform.GetForward() * 2,Col_BlueViolet,1.5f);
 		}
 	}
 }

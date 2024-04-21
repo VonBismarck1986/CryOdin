@@ -47,7 +47,7 @@ namespace Cry
 		private:
 			ma_sound m_sound;
 			IUser m_user;
-			CryAudio::CTransformation const m_transform;
+			CryAudio::CTransformation m_transform;
 		};
 	}
 }
