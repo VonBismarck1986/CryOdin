@@ -8,11 +8,13 @@ namespace Cry
 
 		static ma_result odin_read_pcm_frames(OdinDataSource* pOdinDataSource, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead)
 		{
-			size_t sampleCount = 0;
+			//size_t sampleCount = 0;
 
-			if (pFramesRead != NULL) {
-				*pFramesRead = 0;
-			}
+			ma_uint32 framesWritten = 0;
+
+			OdinReturnCode error;
+
+			float* framesout = (float*)pFramesOut;
 
 			if (frameCount == 0) {
 				return MA_INVALID_ARGS;
@@ -24,15 +26,56 @@ namespace Cry
 
 			if (pFramesOut != NULL)
 			{
-				if (pOdinDataSource->config.media_handle != NULL)
+				//if (pOdinDataSource->config.media_handle != NULL)
+				//{
+				//	sampleCount = frameCount * 2;
+				//
+				//	float* framesout = (float*)pFramesOut;
+				//
+				//	odin_audio_process_reverse(pOdinDataSource->config.room, framesout, sampleCount);
+				//
+				//	odin_audio_read_data(pOdinDataSource->config.media_handle, framesout, sampleCount);
+				//
+				//	
+				//}
+
+				while (framesWritten < frameCount)
 				{
-					sampleCount = frameCount * pOdinDataSource->config.channels;
-					odin_audio_read_data(pOdinDataSource->config.media_handle, (float*)pFramesOut, sampleCount);
+					ma_uint32 framesToWrite = (frameCount * 2) - framesWritten;
+
+					if (framesToWrite == 0)
+						break;
+
+					if (pOdinDataSource->config.media_handle == NULL)
+						break;
+
+					error = odin_audio_data_len(pOdinDataSource->config.media_handle);
+					if (odin_is_error(error))
+					{
+						ODIN_LOG("Error with data len with media_handle ( %d )", pOdinDataSource->config.media_handle);
+						break;
+					}
+
+					error = odin_audio_process_reverse(pOdinDataSource->config.room, framesout, framesToWrite);
+					if (odin_is_error(error))
+					{
+						ODIN_LOG("Error with proccess reverse");
+						break;
+					}
+
+					error = odin_audio_read_data(pOdinDataSource->config.media_handle, framesout, framesToWrite);
+					if (odin_is_error(error))
+					{
+						ODIN_LOG("Error with audio read");
+						break;
+					}
+
+					framesWritten += framesToWrite;
 				}
 			}
 
 			if (pFramesRead != NULL) {
-				*pFramesRead = sampleCount;
+				*pFramesRead = framesWritten;
 			}
 
 			return MA_SUCCESS;
@@ -56,7 +99,6 @@ namespace Cry
 			*pChannels = pOdin->config.channels;
 			*pSampleRate = 48000;  /* we will use the default rate */
 			ma_channel_map_init_standard(ma_standard_channel_map_default, pChannelMap, channelMapCap, pOdin->config.channels);
-
 
 			return MA_SUCCESS;
 		}
@@ -104,15 +146,38 @@ namespace Cry
 				return result;
 			}
 
-			pDataSource->config = *pConfig;
-
+			if (pConfig != NULL)
+			{
+				pDataSource->config = *pConfig;
+			}
 
 			return MA_SUCCESS;
 		}
 
+
+
 		ma_result odin_data_source_uninit(OdinDataSource* pDataSource)
 		{
-			return ma_result();
+			return MA_SUCCESS;
+		}
+
+		ma_result odin_data_source_sound_removed(OdinDataSource* pDataSource, size_t index)
+		{
+			pDataSource->config.output_streams_len -= 1;
+			pDataSource->config.output_streams[index] = pDataSource->config.output_streams[pDataSource->config.output_streams_len];
+			pDataSource->config.output_streams[pDataSource->config.output_streams_len] = 0;
+
+			return MA_SUCCESS;
+		}
+
+		ma_result odin_data_source_update_config(const OdinDataSourceConfig* pConfig, OdinDataSource* pDataSource)
+		{
+			if (pConfig != NULL)
+			{
+				pDataSource->config = *pConfig;
+			}
+
+			return MA_SUCCESS;
 		}
 
 	}

@@ -12,10 +12,11 @@ namespace Cry
 	{
 		std::vector<CCryOdinAudioSound*> m_vSounds;
 		CCryOdin* CCryOdin::CCryOdin::s_instance = nullptr;
-
+		// peer_id , ICryOdinUser 
+		std::unordered_map<uint64_t, IUser> m_usersMap; // turn into vector?
 
 		CCryOdin::CCryOdin()
-			: m_AccessKey("AX907gsvRoGiz9qqhupOleCfR8q1BYE+8LcKwfgbGFqk") // for testing
+			: m_AccessKey(nullptr) // for testing //"AX907gsvRoGiz9qqhupOleCfR8q1BYE+8LcKwfgbGFqk"
 			, m_pCurrentUser(nullptr)
 			, m_RoomToken("")
 			, m_room(0)
@@ -63,7 +64,7 @@ namespace Cry
 			}
 
 
-			OdinAudioStreamConfig audio_output_config;
+			OdinAudioStreamConfig audio_output_config{};
 			audio_output_config.channel_count = 2;
 			audio_output_config.sample_rate = 48000;
 
@@ -215,7 +216,7 @@ namespace Cry
 				return false;
 			}
 
-			ODIN_LOG("Joining room '%s' using '%s' with token '%s'\n", defaultRoom.c_str(), DEFAULT_ODIN_URL, m_RoomToken.c_str());
+			ODIN_LOG("Joining room(%d) '%s' using '%s' with token '%s'\n", m_room, defaultRoom.c_str(), DEFAULT_ODIN_URL, m_RoomToken.c_str());
 			error = odin_room_join(m_room, DEFAULT_ODIN_URL, m_RoomToken.c_str());
 			if (odin_is_error(error))
 			{
@@ -421,6 +422,7 @@ namespace Cry
 					ODIN_LOG("Peer(%" PRIu64 ") has user data with %zu bytes\n", peer_id, peer_user_data_len);
 
 					auto pEntity = gEnv->pEntitySystem->FindEntityByName("test_person");
+
 					if (pEntity)
 					{
 						IUser newUser(std::move(pEntity), peer_id, user_id);
@@ -440,7 +442,7 @@ namespace Cry
 
 					for (auto& peer : m_usersMap)
 					{
-						if (peer.second.peerID == peer_id)
+						if (peer.first == peer_id)
 						{
 							//m_pAudioSystem->RemoveSoundSource(peer.second.inputStream, peer.second.m_pEntity->GetId());
 							m_usersMap.erase(peer.first);
@@ -467,9 +469,11 @@ namespace Cry
 					ODIN_LOG("Looking for (%d)...", peer_id);
 
 					auto it = m_usersMap.find(peer_id);
+
 					if (it != m_usersMap.end())
 					{
 						it->second.mediaStream = media_id;
+						it->second.room = m_room;
 
 						CCryOdinAudioSound* sound = m_pAudioSystem->CreateSound(it->second);
 						m_sounds.push_back(std::move(sound));
@@ -503,16 +507,16 @@ namespace Cry
 					//const char* state = event->media_active_state_changed.active ? "started" : "stopped";
 					bool talking = event->media_active_state_changed.active ? true : false;
 
-					auto it = m_usersMap.find(peer_id);
-					if (it != m_usersMap.end())
-					{
-						it->second.isTalking = talking;
-						it->second.isMuted = talking;
+					//auto it = m_usersMap.find(peer_id);
+					//if (it != m_usersMap.end())
+					//{
+					//	it->second.isTalking = talking;
+					//	it->second.isMuted = talking;
+					//
+					//	ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id, talking ? "talking" : "stoppedTalked");
+					//}
 
-						ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id, it->second.isTalking ? "talking" : "stoppedTalked");
-					}
-
-					ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id,talking ? "talking" : "stoppedTalked");
+					ODIN_LOG("Peer(%" PRIu64 ") %s ", peer_id, talking ? "talking" : "stoppedTalked");
 				}
 				break;
 			}

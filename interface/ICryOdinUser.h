@@ -75,6 +75,7 @@ namespace Cry
 			uint64_t peerID; // Odin Peer ID
 			OdinMediaStreamHandle inputStream; // default user input ( mic )
 			OdinMediaStreamHandle mediaStream; // incoming media ( audio )
+			OdinRoomHandle room;
 			OdinApmConfig apmConfig;
 		};
 	}

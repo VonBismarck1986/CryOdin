@@ -65,9 +65,6 @@ namespace Cry
 
 			CCryOdinAudioSystem* m_pAudioSystem = nullptr;
 
-			// peer_id , ICryOdinUser 
-			std::unordered_map<uint64_t, IUser> m_usersMap; // turn into vector?
-
 
 			Sounds m_sounds;
 		};

@@ -60,7 +60,6 @@ namespace Cry
 			}
 
 			ma_engine_listener_set_world_up(&g_engine, 0, 0.0f, 0.0f, 1.0f); // double check on this, make sure it's Cryengine world UP position
-			ma_engine_listener_set_direction(&g_engine, 0, 0.0f, 1.0f, 0.0f);
 			ma_engine_listener_set_cone(&g_engine, 0, 10.f, 25.f, 0.25f);
 
 			return true;
@@ -105,12 +104,11 @@ namespace Cry
 			if (sound)
 			{
 				sound->SetMediaHandle(user.mediaStream);
-				ODIN_LOG("Media Handle for sound set to %d", sound->GetMediaHandle());
+				sound->SetRoomHandle(user.room);
 
-				if (g_pAudiodevices)
-				{
-					g_pAudiodevices->GetDevice().SoundCreated(&g_engine, sound);
-				}
+				ODIN_LOG("Media Handle for sound set to %d with room id of (%d)", sound->GetMediaHandle(), sound->GetRoomHandle());
+
+				g_pAudiodevices->GetDevice().SoundCreated(&g_engine, sound);
 			}
 
 			return sound;
@@ -129,8 +127,10 @@ namespace Cry
 			if (!m_user.m_pEntity)
 				return;
 
-			auto dir = m_user.m_pEntity->GetForwardDir();
+			auto dir = m_user.m_pEntity->GetWorldRotation().GetColumn1();
+
 			auto pos = m_user.m_pEntity->GetWorldPos();
+			pos.z = pos.z + 1.2f;
 
 			ma_engine_listener_set_direction(&g_engine, 0, dir.x, dir.y, dir.z);
 			ma_engine_listener_set_position(&g_engine, 0, pos.x, pos.y, pos.z);
@@ -143,7 +143,10 @@ namespace Cry
 			if (m_user.m_pEntity)
 			{
 				Vec3 pos = Vec3(ma_engine_listener_get_position(&g_engine,0).x, ma_engine_listener_get_position(&g_engine, 0).y, ma_engine_listener_get_position(&g_engine, 0).z);
-				gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(pos,1.f,Col_Red);
+				gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(pos, 0.5f, Col_Red);
+
+				Vec3 Dir = Vec3(ma_engine_listener_get_direction(&g_engine,0).x, ma_engine_listener_get_direction(&g_engine, 0).y, ma_engine_listener_get_direction(&g_engine, 0).z);
+				gEnv->pRenderer->GetIRenderAuxGeom()->DrawLine(m_user.m_pEntity->GetWorldPos(), Col_DarkOliveGreen, Dir, Col_DarkOliveGreen,1.2f);
 			}
 		}
 	}

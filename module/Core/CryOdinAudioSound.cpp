@@ -8,7 +8,8 @@ namespace Cry
 {
 	namespace Odin
 	{
-	
+		ma_sound m_sound;
+
 		ma_sound* CCryOdinAudioSound::GetSound()
 		{
 			return &m_sound;
@@ -43,7 +44,8 @@ namespace Cry
 		void CCryOdinAudioSound::InitSound(ma_engine* engine, OdinDataSource* pDataSource)
 		{
 			ma_sound_init_from_data_source(engine, pDataSource, 0, NULL, &m_sound);
-			ma_sound_set_looping(&m_sound, true);
+
+			ma_sound_set_looping(&m_sound, 1);
 			ma_sound_set_attenuation_model(&m_sound, ma_attenuation_model_linear);
 			ma_sound_set_directional_attenuation_factor(&m_sound, 2.5f);
 			ma_sound_set_cone(&m_sound, 0.5f, 1.5f, 0.95f);

@@ -20,6 +20,9 @@ namespace Cry
 			OdinMediaStreamHandle media_handle = 0;
 			ma_format format = ma_format_f32;
 			ma_uint32 channels = 2;
+			OdinRoomHandle room;
+			OdinMediaStreamHandle output_streams[512];
+			size_t output_streams_len = 0;
 		};
 
 		struct OdinDataSource
@@ -30,5 +33,8 @@ namespace Cry
 
 		ma_result odin_data_source_init(const OdinDataSourceConfig* pConfig, OdinDataSource* pDataSource);
 		ma_result odin_data_source_uninit(OdinDataSource* pDataSource);
+		ma_result odin_data_source_sound_removed(OdinDataSource* pDataSource, size_t index);
+
+		ma_result odin_data_source_update_config(const OdinDataSourceConfig* pConfig, OdinDataSource* pDataSource);
 	}
 }

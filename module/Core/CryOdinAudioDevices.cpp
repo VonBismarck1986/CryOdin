@@ -7,9 +7,11 @@ namespace Cry
 {
 	namespace Odin
 	{
-		static ma_pcm_rb m_ringBuffer;
-		OdinDataSource datasource[200];
-		std::unordered_map<uint64_t, OdinDataSource> g_datasource;
+
+#define MAX_DATASOURCES 512
+
+		OdinDataSource datasource[MAX_DATASOURCES];
+		int count = 0;
 
 		CCryOdinAudioDevice* CCryOdinAudioDevice::CCryOdinAudioDevice::pAudioDevice = nullptr;
 
@@ -26,7 +28,7 @@ namespace Cry
 
 			ma_device_config output_config = ma_device_config_init(ma_device_type_playback);
 
-			output_config.playback.pDeviceID = &m_config.output_devices[1].id;
+			output_config.playback.pDeviceID = &m_config.output_devices[0].id;
 			output_config.playback.format = ma_format_f32;
 			output_config.playback.channels = 2;
 			output_config.sampleRate = 48000;
@@ -35,8 +37,9 @@ namespace Cry
 			if (result != MA_SUCCESS) {
 				ODIN_LOG("Failed to initialize Output Device.");
 			}
-
-			ODIN_LOG("Speakers device set to %s", m_config.output.playback.name);
+			else {
+				ODIN_LOG("Speakers device set to %s", m_config.output.playback.name);
+			}
 
 			ma_device_config input_config = ma_device_config_init(ma_device_type_capture);
 			input_config.capture.pDeviceID = &m_config.input_devices[0].id;
@@ -49,18 +52,14 @@ namespace Cry
 			if (result != MA_SUCCESS) {
 				ODIN_LOG("Failed to initialize Input Device.");
 			}
-
-			ODIN_LOG("Microphone device set to %s", m_config.input.capture.name);
-
-			result = ma_pcm_rb_init(m_config.output.playback.format, m_config.output.playback.channels, m_config.output.playback.internalPeriodSizeInFrames * 5, NULL, NULL, &m_ringBuffer);
-			if (result != MA_SUCCESS) {
-				ODIN_LOG("Failed to initialize the ring buffer.");
+			else {
+				ODIN_LOG("Microphone device set to %s", m_config.input.capture.name);
 			}
 
-			ma_pcm_rb_set_sample_rate(&m_ringBuffer, m_config.output.sampleRate);
+			count += 1;
+			odin_data_source_init(NULL, &datasource[count]);
 
 			ma_device_start(&m_config.input);
-			ma_device_start(&m_config.output);
 
 			ODIN_LOG("Finished Audio Device Setup");
 		}
@@ -117,21 +116,23 @@ namespace Cry
 
 		void CCryOdinAudioDevice::SoundCreated(ma_engine* engine, CCryOdinAudioSound* sound)
 		{
-			auto count = sound->GetSoundID();
+			//auto count = sound->GetSoundID();
 
 			OdinDataSourceConfig config;
 			config.channels = 2;
 			config.format = ma_format_f32;
 			config.media_handle = std::move(sound->GetMediaHandle());
-
+			config.room = sound->GetRoomHandle();
+			//
 			ODIN_LOG("Media Handle %d set for DataSource", config.media_handle);
-
-			odin_data_source_init(&config, &datasource[count]);
-
+			//
+			odin_data_source_update_config(&config, &datasource[count]);
+			//
 			sound->InitSound(engine, &datasource[count]);
+			ma_device_start(&m_config.output);
 			sound->PlaySound();
 
-			g_datasource.emplace(std::make_pair(count, datasource[count]));
+	
 
 			ODIN_LOG("Sound Created");
 		}
@@ -149,18 +150,12 @@ namespace Cry
 			if (pDevice->type == ma_device_type_capture && m_user.inputStream)
 			{
 				// Push audio buffer from miniaudio callback to ODIN input stream
-				int sample_count = frameCount * m_config.input.capture.channels;
+				int sample_count = frameCount * 1;
 				odin_audio_push_data(m_user.inputStream, (const float*)pInput, sample_count);
 			}
 			else if(pDevice->type == ma_device_type_playback)
 			{
-				for (auto& it : g_datasource)
-				{
-					if (it.second.config.media_handle != 0)
-					{
-						odin_read_pcm_frames(&it.second, pOutput, frameCount, NULL);
-					}
-				}
+				odin_read_pcm_frames(&datasource[count], pOutput, frameCount, NULL);
 			}
 
 		}

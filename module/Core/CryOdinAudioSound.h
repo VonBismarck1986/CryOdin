@@ -12,6 +12,7 @@ namespace Cry
 	{
 		struct OdinDataSource;
 
+
 		class CCryOdinAudioSound final : public ICryOdinAudioSound
 		{
 		public:
@@ -21,10 +22,8 @@ namespace Cry
 			explicit CCryOdinAudioSound(const IUser& user, CryAudio::CTransformation const& tranform)
 				: m_user(user)
 				, m_transform(tranform)
-				, m_sound()
+				, m_room(0)
 			{
-				ma_sound sound{};
-				m_sound = sound;
 			}
 
 			virtual ma_sound* GetSound() override;
@@ -33,6 +32,9 @@ namespace Cry
 			virtual void OnUpdate(float const fFrameTime) override;
 			virtual OdinMediaStreamHandle GetMediaHandle() const override { return m_user.mediaStream; }
 			virtual void SetMediaHandle(OdinMediaStreamHandle handleID) override { m_user.mediaStream = handleID; }
+
+			virtual void SetRoomHandle(OdinRoomHandle room) override { m_room = room; }
+			virtual OdinRoomHandle GetRoomHandle() override { return m_room; }
 
 			virtual uint64_t GetSoundID() const override { return m_user.peerID; }
 
@@ -47,7 +49,7 @@ namespace Cry
 			void DebugDraw(float const frameTime);
 
 		private:
-			ma_sound m_sound;
+			OdinRoomHandle m_room;
 			IUser m_user;
 			CryAudio::CTransformation m_transform;
 		};
