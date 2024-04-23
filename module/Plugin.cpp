@@ -107,7 +107,7 @@ void Cry::Odin::CCryOdinPlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparm
 			if (m_pOdin)
 			{
 				m_pOdin->Shutdown();
-
+			
 				m_pOdin.release();
 			}
 		}

@@ -8,70 +8,60 @@ namespace Cry
 {
 	namespace Odin
 	{
-		ma_sound m_sound;
+		ma_sound CCryOdinSound::CCryOdinSound::m_sound;
 
-		ma_sound* CCryOdinAudioSound::GetSound()
+		CCryOdinSound::CCryOdinSound(ma_engine* engine, OdinDataSource* datasource, const CryAudio::CTransformation& transform)
+			: m_transform(transform)
 		{
-			return &m_sound;
-		}
+			if (m_pEntity)
+			{
+				m_transform = CryAudio::CTransformation(m_pEntity->GetWorldTM());
+			}
 
-		void CCryOdinAudioSound::SetSoundVolume(float fAmount)
-		{
-			ma_sound_set_volume(&m_sound, ma_volume_db_to_linear(fAmount));
-		}
-
-		float CCryOdinAudioSound::GetSoundVolume() const
-		{
-			return ma_sound_get_volume(&m_sound);
-		}
-
-		void CCryOdinAudioSound::OnUpdate(float const fFrameTime)
-		{
-			/* Might be wondering why updating per-frame , since this locked to person and said can move at anytime best to keep "synced" */
-			m_transform = m_user.m_pEntity->GetWorldTM();
-
+			ma_sound_init_from_data_source(engine, datasource, 0, NULL, &m_sound);
 			ma_sound_set_position(&m_sound, m_transform.GetPosition().x, m_transform.GetPosition().y, m_transform.GetPosition().z);
 			ma_sound_set_direction(&m_sound, m_transform.GetForward().x, m_transform.GetForward().y, m_transform.GetForward().z);
+			ma_sound_set_looping(&m_sound, MA_TRUE);
+			ma_sound_set_volume(&m_sound, ma_volume_db_to_linear(10.f));
 
-			DebugDraw(fFrameTime);
 		}
 
-		Vec3 CCryOdinAudioSound::GetSoundPosition() const
-		{
-			return m_transform.GetPosition();
-		}
-
-		void CCryOdinAudioSound::InitSound(ma_engine* engine, OdinDataSource* pDataSource)
-		{
-			ma_sound_init_from_data_source(engine, pDataSource, 0, NULL, &m_sound);
-
-			ma_sound_set_looping(&m_sound, 1);
-			ma_sound_set_attenuation_model(&m_sound, ma_attenuation_model_linear);
-			ma_sound_set_directional_attenuation_factor(&m_sound, 2.5f);
-			ma_sound_set_cone(&m_sound, 0.5f, 1.5f, 0.95f);
-
-			ma_sound_set_position(&m_sound, m_transform.GetPosition().x, m_transform.GetPosition().y, m_transform.GetPosition().z);
-			ma_sound_set_direction(&m_sound, m_transform.GetForward().x, m_transform.GetForward().y, m_transform.GetForward().z);
-
-			ODIN_LOG("Sound Finished");
-		}
-
-		void CCryOdinAudioSound::PlaySound()
+		void CCryOdinSound::StartSound()
 		{
 			ma_sound_start(&m_sound);
 		}
-		void CCryOdinAudioSound::StopSound()
+
+		void CCryOdinSound::StopSound()
 		{
 			ma_sound_stop(&m_sound);
 		}
 
-		void CCryOdinAudioSound::DebugDraw(float const frameTime)
+		void CCryOdinSound::SetSoundVolume(float fAmount)
 		{
-			// Position
-			gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(m_transform.GetPosition(), 1.f, Col_Blue);
-
-			// Direction
-			gEnv->pRenderer->GetIRenderAuxGeom()->DrawLine(m_transform.GetPosition(), Col_BlueViolet, m_transform.GetForward() * 1.2f, Col_BlueViolet,1.5f);
+			ma_sound_set_volume(&m_sound, fAmount);
 		}
+
+		float CCryOdinSound::GetSoundVolume() const
+		{
+			m_volume = ma_sound_get_volume(&m_sound);
+			return m_volume;
+		}
+
+		void CCryOdinSound::OnUpdate(float const frameTime)
+		{
+			if (m_pEntity)
+			{
+				m_transform = CryAudio::CTransformation(m_pEntity->GetWorldTM());
+
+				ma_sound_set_position(&m_sound, m_transform.GetPosition().x, m_transform.GetPosition().y, m_transform.GetPosition().z);
+				ma_sound_set_direction(&m_sound, m_transform.GetForward().x, m_transform.GetForward().y, m_transform.GetForward().z);
+
+				gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(m_transform.GetPosition(), 1.2f, Col_Blue);
+				gEnv->pRenderer->GetIRenderAuxGeom()->DrawLine(m_transform.GetForward(), Col_Red, m_transform.GetForward() * 2, Col_Red, 2.5f);
+			}
+		}
+
+
+
 	}
 }

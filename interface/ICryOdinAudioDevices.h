@@ -1,6 +1,7 @@
 #pragma once
 
 #include <miniaudio.h>
+#include <odin.h>
 
 namespace Cry
 {
@@ -19,12 +20,13 @@ namespace Cry
 			OdinAudioStreamConfig audio_input_config;
 		};
 
+
 		struct ICryOdinAudioDevice
 		{
 			virtual ~ICryOdinAudioDevice() {}
 
-			virtual ma_device GetDefaultInputDevice() const = 0;
-			virtual ma_device GetDefaultOutputDevice() const = 0;
+			virtual ma_device GetDefaultInputDevice() = 0;
+			virtual ma_device GetDefaultOutputDevice() = 0;
 
 			virtual ma_device_info* GetAllInputDevices() const = 0;
 			virtual ma_device_info* GetAllOutputDevices() const = 0;

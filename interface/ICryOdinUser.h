@@ -1,82 +1,28 @@
 #pragma once
 
+#include <ICryOdinAudioHandle.h>
 #include <odin.h>
-#include <miniaudio.h>
-#include <CryEntitySystem/IEntity.h>
-
 
 namespace Cry
 {
 	namespace Odin
 	{
-		struct IUser
+		struct ICryOdinUser
 		{
-			IUser()
-				: m_pEntity(nullptr)
-				, peerID(0)
-				, userName(nullptr)
-				, isTalking(false)
-				, isMuted(false)
-				, inputStream(0)
-				, mediaStream(0)
-				, apmConfig(OdinApmConfig())
-				, listenerPosition(CryAudio::CTransformation::GetEmptyObject())
-			{}
+			virtual ~ICryOdinUser() {}
 
-			IUser(IEntity* pEntity, uint16_t peer_id, const char* user_name)
-				: m_pEntity(pEntity)
-				, peerID(peer_id)
-				, userName(user_name)
-				, isTalking(false)
-				, isMuted(false)
-				, inputStream(0)
-				, mediaStream(0)
-				, apmConfig(OdinApmConfig())
-				, listenerPosition(CryAudio::CTransformation::GetEmptyObject())
-			{}
+			virtual string GetUserName() const = 0;
 
-			IUser(IEntity* pEntity, uint16_t peer_id)
-				: m_pEntity(pEntity)
-				, peerID(peer_id)
-				, userName(nullptr)
-				, isTalking(false)
-				, isMuted(false)
-				, inputStream(0)
-				, mediaStream(0)
-				, apmConfig(OdinApmConfig())
-				, listenerPosition(CryAudio::CTransformation::GetEmptyObject())
-			{}
+			virtual uint64_t GetUserId() const = 0;
+			virtual uint64_t GetPeerId() const = 0;
+			virtual const char* RoomName() const = 0;
 
-			IUser(IEntity* pEntity)
-				: m_pEntity(pEntity)
-				, peerID(0)
-				, userName(nullptr)
-				, isTalking(false)
-				, isMuted(false)
-				, inputStream(0)
-				, mediaStream(0)
-				, apmConfig(OdinApmConfig())
-				, listenerPosition(CryAudio::CTransformation::GetEmptyObject())
-			{}
+			virtual OdinMediaStreamHandle GetMediaHandle(EAudioHandleType type) const = 0;
+			virtual OdinRoomHandle GetRoomHandle() const = 0;
 
+			virtual string ToStringDebug() const = 0;
 
-			ILINE const char* GetUserName() const { return userName; }
-			ILINE bool IsTalking() const { return isTalking; }
-			ILINE bool IsMuted() const { return isMuted; }
-			ILINE uint64_t OdinPeerID() const { return peerID; }
-			ILINE void SetTransformForListener(CryAudio::CTransformation& transform) { listenerPosition = transform; }
-
-			IEntity* m_pEntity;
-			const char* userName;
-			bool isTalking;
-			bool isMuted;
-			CryAudio::CTransformation listenerPosition;
-
-			uint64_t peerID; // Odin Peer ID
-			OdinMediaStreamHandle inputStream; // default user input ( mic )
-			OdinMediaStreamHandle mediaStream; // incoming media ( audio )
-			OdinRoomHandle room;
-			OdinApmConfig apmConfig;
+			virtual bool IsTalking() = 0;
 		};
 	}
 }

@@ -20,20 +20,23 @@ namespace Cry
 			virtual ICryOdin* GetOdin() const = 0;
 		};
 
-		
+
+		/* Probably shoud seprate these two in different files ( headers ) but, I'm too lazy... so yea :D */
+
 		struct ICryOdin
 		{
 			virtual ~ICryOdin() {}
 
-
-			// Start Up Odin and pass your accessKey
+			// Start Up Odin and pass your accessKey.
+			// It's recommend to pass key from a rest-api 
 			// @param const char* - your Odin Access Key
-			virtual bool Init(const char* accessKey) = 0;
+			virtual bool InitOdin(const char* accessKey) = 0;
 
 			// Shutdown Odin
 			virtual void Shutdown() = 0;
 
-			// Set Current Access Key, you don't have to if already set key via Init()
+			// Set Current Access Key, you don't have to if already set key via Init(). Again if 
+			// in release mode best to pass Access from a rest-api 
 			// @param const char* - Pass Access Key 
 			virtual void SetAccessKey(const char* accessKey) = 0;
 
@@ -45,38 +48,17 @@ namespace Cry
 			//@param const char* - This Is actually EntityID best to create a string and format with EntityID and pass it with c_str ( example: string userID = string().Format("%s", EntityID);
 			virtual const char* GenerateRoomToken(const char* roomID, const char* user_id) const = 0;
 
-			// Set up APM Config for Odin and current user, note this effect current user APM settings
+			// Set up APM Config for Odin and current user, note this effect current user APM settings / Room APM
 			//@param OdinApmConfig - base struct for APM settings
 			virtual void SetOdinApmConfig(OdinApmConfig config) = 0;
 
-			// Return current APM Settings for Odin
-			//@return OdinApmConfig - struct params
-			virtual OdinApmConfig GetCurrentOdinApmConfig() const = 0;
+			virtual bool SetUpLocalUser(const char* user_name, EntityId entityId) = 0;
 
+			virtual bool JoinRoom(const char* room_name,const OdinApmConfig& config, EntityId entityId) = 0;
 
-			// Connections
-
-			// Setup the local Client
-			//@param ICryOdinUser - This is basic struct of details of the local user and all users from Odin to Cryengine
-			virtual bool SetupAndConnectLocalClient(const IUser& pUser) = 0;
-
-			// Use this function to remove local user ( current ) from a room
-			//@param ICryOdinUser - This is basic struct of details of the local user and all users from Odin to Cryengine
-			virtual void RemoveLocalClientFromOdinRoom(const IUser& pEntity) = 0;
-
-			// Connect the local user to a room, must pass a room name this will become a new RoomHandle
-			// @param const char* - Just pass a room name example "my_room"
-			virtual void ConnectUserToOdinRoom(const char* room_name) = 0;
-
-			// Use this function to return Odin peer id of a user 
-			// @param IUser - pass Cry::Odin::IUser ( IUser ) 
-			// @return uint64_t - Odin peerID
-			virtual uint64_t GetOdinUserId(const IUser entityId) = 0;
-
-			// All connected peers in current room
-			//@param std::map - pass a empty map of uint64_t , IUser this will copy over to your map
-			virtual void GetPeers(std::unordered_map<uint64_t, IUser>& map) const = 0;
 		};
+
+
 
 	}
 }

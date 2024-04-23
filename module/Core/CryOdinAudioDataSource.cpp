@@ -49,24 +49,24 @@ namespace Cry
 					if (pOdinDataSource->config.media_handle == NULL)
 						break;
 
-					error = odin_audio_data_len(pOdinDataSource->config.media_handle);
-					if (odin_is_error(error))
-					{
-						ODIN_LOG("Error with data len with media_handle ( %d )", pOdinDataSource->config.media_handle);
-						break;
-					}
+					//error = odin_audio_data_len(pOdinDataSource->config.media_handle);
+					//if (odin_is_error(error))
+					//{
+					//	ODIN_LOG("Error with data len with media_handle ( %d )", pOdinDataSource->config.media_handle);
+					//	break;
+					//}
 
 					error = odin_audio_process_reverse(pOdinDataSource->config.room, framesout, framesToWrite);
 					if (odin_is_error(error))
 					{
-						ODIN_LOG("Error with proccess reverse");
+						print_error(error, "Error with proccess reverse");
 						break;
 					}
 
 					error = odin_audio_read_data(pOdinDataSource->config.media_handle, framesout, framesToWrite);
 					if (odin_is_error(error))
 					{
-						ODIN_LOG("Error with audio read");
+						print_error(error,"Error with audio read");
 						break;
 					}
 
@@ -163,9 +163,9 @@ namespace Cry
 
 		ma_result odin_data_source_sound_removed(OdinDataSource* pDataSource, size_t index)
 		{
-			pDataSource->config.output_streams_len -= 1;
-			pDataSource->config.output_streams[index] = pDataSource->config.output_streams[pDataSource->config.output_streams_len];
-			pDataSource->config.output_streams[pDataSource->config.output_streams_len] = 0;
+			//pDataSource->config.output_streams_len -= 1;
+			//pDataSource->config.output_streams[index] = pDataSource->config.output_streams[pDataSource->config.output_streams_len];
+			//pDataSource->config.output_streams[pDataSource->config.output_streams_len] = 0;
 
 			return MA_SUCCESS;
 		}

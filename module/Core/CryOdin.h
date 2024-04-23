@@ -1,7 +1,7 @@
-#pragma once
-#include "ICryOdin.h"
+#pragma once 
+#include "Utils/OdinHelpers.h"
 
-#include <ICryOdinAudioSound.h>
+#include <ICryOdin.h>
 #include <CryAction.h> // for entities and other stuff
 #include <CryString/CryString.h>
 #include <map>
@@ -11,41 +11,32 @@ namespace Cry
 {
 	namespace Odin
 	{
+		class CCryOdinUser;
 		class CCryOdinAudioSystem;
-		class CCryOdinAudioSound;
 
-		class CCryOdin final
-			: public ICryOdin
-			, public ISystemEventListener
+		class CCryOdin final : public ICryOdin
 		{
 		public:
+			DISABLE_COPY_AND_MOVE(CCryOdin)
 			CCryOdin();
 			virtual ~CCryOdin();
 
 			static CCryOdin* Get();
 
-			virtual bool Init(const char* accessKey) override;
+			virtual bool InitOdin(const char* accessKey) override;
 			virtual void Shutdown() override;
-			virtual void OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lparam) override;
+			virtual void SetAccessKey(const char* accessKey) override { m_AccessKey = accessKey; };
 
-			virtual void SetAccessKey(const char* accessKey) override;
 			virtual const char* GenerateAccessKey() const override;
 			virtual const char* GenerateRoomToken(const char* roomID, const char* user_id) const override;
 			virtual void SetOdinApmConfig(OdinApmConfig config) override;
-			virtual OdinApmConfig GetCurrentOdinApmConfig() const override;
 
-			// Connections
-	
-			virtual bool SetupAndConnectLocalClient(const IUser& pUser) override;
-			virtual void RemoveLocalClientFromOdinRoom(const IUser& pEntity) override;
+			virtual bool SetUpLocalUser(const char* user_name, EntityId entityId) override;
 
-			virtual void ConnectUserToOdinRoom(const char* room_name) override;
-			virtual uint64_t GetOdinUserId(const IUser entityId) override;
-			virtual void GetPeers(std::unordered_map<uint64_t, IUser>& map) const override;
+			virtual bool JoinRoom(const char* room_name, const OdinApmConfig& config, EntityId entityId) override;
 
-			void OnUpdate(float frameTime);
 
-			Sounds GetSounds() const { return m_sounds; }
+			void OnUpdate(float const frameTime);
 		protected:
 			static CCryOdin* s_instance;
 
@@ -57,16 +48,14 @@ namespace Cry
 			uint16_t get_media_id_from_handle(OdinMediaStreamHandle handle);
 
 		private:
-			CryFixedStringT<128> m_AccessKey; 
+			CryFixedStringT<128> m_AccessKey;
 			CryFixedStringT<512> m_RoomToken;
 			OdinRoomHandle m_room;
-			IUser m_pCurrentUser;
 
+			std::unique_ptr<CCryOdinAudioSystem> m_pAudioSystem = nullptr;
+			std::unordered_map<uint64_t, std::unique_ptr<CCryOdinUser>> m_userMap;
 
-			CCryOdinAudioSystem* m_pAudioSystem = nullptr;
-
-
-			Sounds m_sounds;
+			CCryOdinUser* m_localUser;
 		};
 	}
 }
