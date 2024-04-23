@@ -7,6 +7,15 @@ namespace Cry
 {
 	namespace Odin
 	{
+		enum class EOdinDataSourceFlags : uint32
+		{
+			NONE = BIT(0),
+			RADIO = BIT(1),
+		};
+
+		using OdinDataFlags = CEnumFlags<EOdinDataSourceFlags>;
+		CRY_CREATE_ENUM_FLAG_OPERATORS(EOdinDataSourceFlags);
+
 		struct SCryOdinAudioDevicesConfig
 		{
 			ma_device_info* output_devices;
@@ -41,6 +50,9 @@ namespace Cry
 			virtual void SetOutputStreamConfig(const OdinAudioStreamConfig& config) = 0;
 
 			virtual SCryOdinAudioDevicesConfig GetAudioDeviceConfig() const = 0;
+
+			virtual void SetEffect(OdinDataFlags flag) = 0;
+			virtual OdinDataFlags GetDeviceFlags() = 0;
 		};
 	}
 }

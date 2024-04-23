@@ -19,6 +19,7 @@ namespace Cry
 			virtual float GetSoundVolume() const = 0;
 
 			virtual CryAudio::CTransformation GetTransform() = 0;
+			virtual uint16_t GetSoundId() const = 0;
 		};
 	}
 }

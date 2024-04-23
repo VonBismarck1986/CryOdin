@@ -41,11 +41,12 @@ namespace Cry
 			virtual bool IsTalking() override { return m_bTalking; }
 
 
-			void Talking(bool yesNo) { m_bTalking = yesNo; }
+			virtual void Talking(bool yesNo) override { m_bTalking = yesNo; }
 			void SetPeerID(uint64_t id) { m_PeerID = id; }
 			void SetUserID(uint64_t id) { m_UserID = id; }
-			void SetMediaHandle(EAudioHandleType type, OdinMediaStreamHandle handle);
-			void SetRoomHandle(OdinRoomHandle room) { m_room = room; }
+
+			virtual void SetMediaHandle(EAudioHandleType type, OdinMediaStreamHandle handle) override;
+			virtual void SetRoomHandle(OdinRoomHandle room) override { m_room = room; }
 		private:
 			mutable OdinMediaStreamHandle m_mediaHandles[3]; // 1 is input , 2 is output
 			mutable OdinRoomHandle m_room;

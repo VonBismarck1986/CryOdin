@@ -30,9 +30,9 @@ namespace Cry
 			struct IListener
 			{
 				virtual void OnJoinedRoom(const char* room_name) = 0;
-				virtual void OnPeerJoined(ICryOdinUser* user) = 0;
-				virtual void OnPeerLeft(ICryOdinUser* user) = 0;
-				virtual void OnPeerUserDataUpated(ICryOdinUser* user) = 0;
+				virtual void OnPeerJoined(ICryOdinUserComponent* user) = 0;
+				virtual void OnPeerLeft(ICryOdinUserComponent* user) = 0;
+				virtual void OnPeerUserDataUpated(ICryOdinUserComponent* user) = 0;
 			};
 
 			//! Used to register Odin listeners

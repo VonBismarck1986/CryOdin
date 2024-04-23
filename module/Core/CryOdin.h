@@ -12,6 +12,8 @@ namespace Cry
 	namespace Odin
 	{
 		class CCryOdinUser;
+		class CCryOdinUserComponent;
+
 		class CCryOdinAudioSystem;
 
 		class CCryOdin final : public ICryOdin
@@ -56,11 +58,25 @@ namespace Cry
 			OdinRoomHandle m_room;
 
 			std::unique_ptr<CCryOdinAudioSystem> m_pAudioSystem = nullptr;
-			std::unordered_map<uint64_t, std::unique_ptr<CCryOdinUser>> m_userMap;
+			std::unordered_map<uint64_t, std::unique_ptr<ICryOdinUserComponent>> m_userMap;
 
 			CCryOdinUser* m_localUser;
 
 			CListenerSet<IListener*> m_listeners = 1;
+
+		protected:
+			struct SNativeJsonRepresentation
+			{
+				string myString;
+
+				// The Serialize function is required, and will be called when reading from the JSON
+				void Serialize(Serialization::IArchive& ar)
+				{
+					// Serialize the string under the name "myString"
+					// The second argument is the label, used for UI serialization
+					ar(myString, "myString", "My String");
+				}
+			};
 		};
 	}
 }

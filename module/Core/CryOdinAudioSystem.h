@@ -7,6 +7,7 @@ namespace Cry
 {
 	namespace Odin
 	{
+		class CCryOdinOcclusion;
 		class CCryOdinAudioDevice;
 		class CCryOdinSound;
 		class CCryOdinUser;
@@ -46,6 +47,8 @@ namespace Cry
 			static ma_resource_manager_config m_resourceManagerConfig;
 
 			std::unique_ptr<CCryOdinAudioDevice> m_pAudioDevice = nullptr;
+			std::unique_ptr<CCryOdinOcclusion> m_pOcclusion = nullptr;
+
 			std::vector<std::unique_ptr<CCryOdinSound>> m_sounds;
 
 			CCryOdinUser* m_pUser;

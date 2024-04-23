@@ -52,6 +52,13 @@ add_sources("CryOdin_Core.cpp"
 	"Core/CryOdinAudioOcclusion.h"
 )
 
+add_sources("CryOdin_Components.cpp"
+	SOURCE_GROUP "Components"
+	"Components/CryOdinUserComponent.cpp"
+	"Components/CryOdinUserComponent.h"
+
+)
+
 add_sources("CryOdin_Utils.cpp"
 	SOURCE_GROUP "Utils"
 	"Utils/MiniAudioHelpers.h"

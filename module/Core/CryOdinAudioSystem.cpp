@@ -7,6 +7,7 @@
 #include "CryOdinAudioSound.h"
 #include "CryOdinAudioDataSource.h"
 #include "CryOdinUser.h"
+#include "CryOdinAudioOcclusion.h"
 
 #include <CryRenderer/IRenderAuxGeom.h>
 
@@ -14,16 +15,26 @@ namespace Cry
 {
 	namespace Odin
 	{
-		constexpr int max_data_obj = 1000;
-		int data_counter = 0;
+		constexpr int max_data_obj = 25000; // I do not know max id number of Mediahandles so 25000 should be enough....
+		int data_counter = 0; // Global Counter
 
 		OdinDataSource odinData[max_data_obj]; //TODO: make this as a array
 		OdinDataSourceConfig odinConfig[max_data_obj]; //TODO: make this as array
 
-		constexpr uint32 g_numIndices = 6;
-		constexpr vtx_idx g_auxIndices[g_numIndices] = { 2, 1, 0, 2, 3, 1 };
-		constexpr uint32 g_numPoints = 4;
-		constexpr float g_listenerHeadSizeHalf = 0.5f;
+		// Ignore below node graph method testing
+		//static ma_node_graph    g_nodeGraph;
+		//OdinDataSourceNode      g_nodes[max_data_obj];
+		//static ma_splitter_node g_splitterNode;
+		//static OdinEffectNoiseNode g_noise;
+		//static ma_lpf_node      g_lpfNode;
+
+		// resuing this function - TODO:: make it global 
+		static uint16_t get_media_id_from_handle(OdinMediaStreamHandle handle)
+		{
+			uint16_t media_id;
+			int error = odin_media_stream_media_id(handle, &media_id);
+			return odin_is_error(error) ? 0 : media_id;
+		}
 
 		static ma_allocation_callbacks MemoryCallback = {
 			nullptr,
@@ -90,7 +101,7 @@ namespace Cry
 			}
 
 			// Start Devices
-			m_pAudioDevice.reset(new CCryOdinAudioDevice(&m_engine));
+			m_pAudioDevice.reset(new CCryOdinAudioDevice(&m_engine,EOdinDataSourceFlags::NONE));
 
 			ma_engine_config engineConfig;
 			engineConfig = ma_engine_config_init();
@@ -108,11 +119,15 @@ namespace Cry
 			ma_engine_listener_set_world_up(&m_engine, 0, 0.0f, 0.0f, 1.0f); // double check on this, make sure it's Cryengine world UP position
 			ma_engine_listener_set_cone(&m_engine, 0, 10.f, 45.f, 0.25f);
 
+			m_pOcclusion.reset(new CCryOdinOcclusion());
+
 			return true;
 		}
 
 		void CCryOdinAudioSystem::ShutdownAudioSystem()
 		{
+			m_pOcclusion.release();
+
 			if (!m_sounds.empty())
 			{
 				for (auto& sound : m_sounds)
@@ -136,7 +151,7 @@ namespace Cry
 			{
 				odin_data_source_uninit(&odinData[i]);
 			}
-
+			data_counter = 0;
 
 			if (s_instance)
 			{
@@ -155,39 +170,67 @@ namespace Cry
 		void CCryOdinAudioSystem::CreateAudioObject(const ICryOdinUser& ref)
 		{
 			data_counter += 1;
+			
+			// We based sound ID and DataSource on media handle
+			uint16_t handle = get_media_id_from_handle(ref.GetMediaHandle(EAudioHandleType::eAHT_Output));
 
-			odinConfig[data_counter].channels = 2;
-			odinConfig[data_counter].format = ma_format_f32;
-			odinConfig[data_counter].media_handle = ref.GetMediaHandle(EAudioHandleType::eAHT_Output);
-			odinConfig[data_counter].room = ref.GetRoomHandle();
+			odinConfig[handle].channels = 2;
+			odinConfig[handle].format = ma_format_f32;
+			odinConfig[handle].media_handle = ref.GetMediaHandle(EAudioHandleType::eAHT_Output);
+			odinConfig[handle].room = ref.GetRoomHandle();
+			odinConfig[handle].usingNode = true;
 
-			odin_data_source_init(&odinConfig[data_counter], &odinData[data_counter]);
 
-			auto temp = std::make_unique<CCryOdinSound>(&m_engine, &odinData[data_counter], CryAudio::CTransformation::GetEmptyObject());
+			odin_data_source_init(&odinConfig[handle], &odinData[handle]);
 
-			IEntity* entity = gEnv->pEntitySystem->GetEntity(ref.GetUserId());
+			//TODO:: come back to node graph method for adding effect...
+
+			//ma_data_source_node_config dataSourceNodeConfig = ma_data_source_node_config_init(&g_nodes[handle].odin);
+			//ma_result res = odin_data_node_init_ex(&g_nodeGraph, &odinConfig[handle], &g_nodes[handle]);
+			//if (res != MA_SUCCESS)
+			//{
+			//	ODIN_LOG("Failed");
+			//}
+			//
+			//ma_node_attach_output_bus(&g_nodes[handle].node, 0, &g_splitterNode, 0);
+
+			auto temp = std::make_unique<CCryOdinSound>(&m_engine, &odinData[handle], CryAudio::CTransformation::GetEmptyObject(), handle);
+
+			IEntity* entity = gEnv->pEntitySystem->GetEntity(ref.GetUserId()); //TODO:: Change this, it works but, we cannot sure EntityIDs will be the same accross the network
 			temp->SetEntity(entity);
-
 			temp->StartSound();
 
+			m_pOcclusion->AddSound(temp.get());
+
+			//m_pAudioDevice->SoundStarted(true);
+
 			m_sounds.push_back(std::move(temp));
+
+#if _PROFILE || _DEBUG
+			ODIN_LOG("Counter: %i", data_counter);
+#endif // _PROFILE || _DEBUG
 		}
 
 		void Cry::Odin::CCryOdinAudioSystem::DestroyAudioObject(const ICryOdinUser& ref)
 		{
-			data_counter -= 1;
-
+		
 			for (auto& sound : m_sounds)
 			{
 				if (sound->GetAttachedEntity()->GetId() == ref.GetUserId())
 				{
 					sound->StopSound();
 					sound->Destory();
+					int soundID = sound->GetSoundId();
 					sound.release();
 
-					odin_data_source_uninit(&odinData[data_counter]);
+					odin_data_source_uninit(&odinData[soundID]);
 				}
 			}
+
+			data_counter -= 1;
+#if _PROFILE || _DEBUG
+			ODIN_LOG("Counter: %i", data_counter);
+#endif // _PROFILE || _DEBUG
 		}
 
 		void CCryOdinAudioSystem::OnUpdate(float const frameTime)
@@ -260,8 +303,6 @@ namespace Cry
 				break;
 			}
 		}
-
-		
 
 	}
 }

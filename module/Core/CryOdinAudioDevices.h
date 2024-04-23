@@ -14,7 +14,7 @@ namespace Cry
 		{
 		public:
 			DISABLE_COPY_AND_MOVE(CCryOdinAudioDevice)
-			CCryOdinAudioDevice(ma_engine* engine);
+			CCryOdinAudioDevice(ma_engine* engine, OdinDataFlags flags);
 			virtual ~CCryOdinAudioDevice();
 
 			static CCryOdinAudioDevice& Get();
@@ -36,11 +36,15 @@ namespace Cry
 
 			virtual SCryOdinAudioDevicesConfig GetAudioDeviceConfig() const override { return m_config; }
 
+			virtual void SetEffect(OdinDataFlags flag) override { m_flags = flag; }
+			virtual OdinDataFlags GetDeviceFlags() override { return m_flags; }
+
 
 			void SetInputHandle(OdinMediaStreamHandle inputHandle) { m_inputHandle = inputHandle; }
 			void AddDataSource(OdinDataSource* dataSource) { m_dataSources.push_back(dataSource); }
 
 			void ShutdownAudioDevices();
+			void SoundStarted(bool yesNo) { m_bSoundStarted = yesNo; }
 		protected:
 			static CCryOdinAudioDevice* s_instance;
 
@@ -55,6 +59,13 @@ namespace Cry
 			std::vector<OdinDataSource*> m_dataSources;
 
 			OdinMediaStreamHandle m_inputHandle;
+
+			OdinDataFlags m_flags = EOdinDataSourceFlags::NONE;
+			bool m_bSoundStarted = false;
+			//ma_node_graph m_nodeGraph;
+
+			ma_noise g_noise;
+			ma_noise_config g_noiseConfig;
 		};
 	}
 }

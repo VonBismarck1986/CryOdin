@@ -2,6 +2,7 @@
 #include "CryOdinAudioDevices.h"
 
 #include "CryOdinAudioDataSource.h"
+#include "Utils/MiniAudioHelpers.h"
 
 namespace Cry
 {
@@ -9,8 +10,16 @@ namespace Cry
 	{
 		CCryOdinAudioDevice* CCryOdinAudioDevice::CCryOdinAudioDevice::s_instance = nullptr;
 
-		CCryOdinAudioDevice::CCryOdinAudioDevice(ma_engine* engine)
+		static ma_allocation_callbacks MemoryCallbacks = {
+			nullptr,
+			Utils::Allocator::Alloc,
+			Utils::Allocator::ReAlloc,
+			Utils::Allocator::DeAlloc,
+		};
+
+		CCryOdinAudioDevice::CCryOdinAudioDevice(ma_engine* engine, OdinDataFlags flags)
 			: m_config(SCryOdinAudioDevicesConfig())
+			, m_flags(flags)
 		{
 			if (!s_instance)
 			{
@@ -51,6 +60,21 @@ namespace Cry
 			}
 			else {
 				ODIN_LOG("Microphone set to %s", m_config.input.capture.name);
+			}
+
+			if (m_flags == EOdinDataSourceFlags::RADIO)
+			{
+				g_noiseConfig.channels = 2;
+				g_noiseConfig.duplicateChannels = MA_TRUE;
+				g_noiseConfig.format = ma_format_f32;
+				g_noiseConfig.type = ma_noise_type_pink;
+				g_noiseConfig.amplitude = 0.2f;
+
+				result = ma_noise_init(&g_noiseConfig, &MemoryCallbacks, &g_noise);
+				if (result != MA_SUCCESS) {
+					ODIN_LOG("Failed to initialize Radio Effect.");
+				}
+				ma_noise_set_seed(&g_noise, 10);
 			}
 
 			ma_device_start(&m_config.input);
@@ -113,6 +137,11 @@ namespace Cry
 				int sample_count = frameCount * 1;
 				odin_audio_push_data(m_inputHandle, (const float*)pInput, sample_count);
 			}
+
+			//if (m_flags == EOdinDataSourceFlags::RADIO && m_bSoundStarted)
+			//{
+			//	ma_node_graph_read_pcm_frames(&m_nodeGraph, pOutput, frameCount, NULL);
+			//}
 		}
 
 		void CCryOdinAudioDevice::GetAudioDevices(SCryOdinAudioDevicesConfig* devices)

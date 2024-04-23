@@ -10,8 +10,9 @@ namespace Cry
 	{
 		ma_sound CCryOdinSound::CCryOdinSound::m_sound;
 
-		CCryOdinSound::CCryOdinSound(ma_engine* engine, OdinDataSource* datasource, const CryAudio::CTransformation& transform)
+		CCryOdinSound::CCryOdinSound(ma_engine* engine, OdinDataSource* datasource, const CryAudio::CTransformation& transform, uint16_t id)
 			: m_transform(transform)
+			, m_id(id)
 		{
 			if (m_pEntity)
 			{
