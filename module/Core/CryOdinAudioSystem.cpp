@@ -115,6 +115,16 @@ namespace Cry
 				}
 			}
 
+			ma_engine_uninit(&m_engine);
+
+			m_pAudioDevice->ShutdownAudioDevices();
+			m_pAudioDevice.release();
+
+			ma_resource_manager_uninit(&m_resourceManager);
+
+			odin_data_source_uninit(&odinData);
+
+
 			if (s_instance)
 			{
 				SAFE_DELETE(s_instance);
@@ -139,8 +149,6 @@ namespace Cry
 			odin_data_source_init(&odinConfig, &odinData);
 
 			auto temp = std::make_unique<CCryOdinSound>(&m_engine, &odinData, CryAudio::CTransformation::GetEmptyObject());
-
-			//m_pAudioDevice->AddDataSource(std::move(&odinData));
 
 			IEntity* entity = gEnv->pEntitySystem->GetEntity(ref.GetUserId());
 			temp->SetEntity(entity);

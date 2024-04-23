@@ -61,11 +61,6 @@ namespace Cry
 
 		CCryOdinAudioDevice::~CCryOdinAudioDevice()
 		{
-			if (s_instance)
-			{
-				SAFE_DELETE(s_instance);
-				s_instance = nullptr;
-			}
 		}
 
 		CCryOdinAudioDevice& CCryOdinAudioDevice::Get()
@@ -82,13 +77,27 @@ namespace Cry
 		{
 			return 0;
 		}
-
+		
 		void CCryOdinAudioDevice::ChangeInputDevice(int index)
 		{
 		}
 
 		void CCryOdinAudioDevice::ChangeOutputDevice(int index)
 		{
+		}
+
+		void CCryOdinAudioDevice::ShutdownAudioDevices()
+		{
+			ma_device_uninit(&m_config.output);
+			ma_device_uninit(&m_config.input);
+
+			FreeAudioDevices(&m_config);
+
+			if (s_instance)
+			{
+				SAFE_DELETE(s_instance);
+				s_instance = nullptr;
+			}
 		}
 
 		void CCryOdinAudioDevice::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
@@ -103,9 +112,6 @@ namespace Cry
 				// Push audio buffer from miniaudio callback to ODIN input stream
 				int sample_count = frameCount * 1;
 				odin_audio_push_data(m_inputHandle, (const float*)pInput, sample_count);
-			}
-			else if (pDevice->type == ma_device_type_playback)
-			{
 			}
 		}
 

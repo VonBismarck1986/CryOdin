@@ -23,6 +23,9 @@ namespace Cry
 
 			static CCryOdin* Get();
 
+			virtual void AddListener(IListener& listener, const char* szName) override { m_listeners.Add(&listener, szName); }
+			virtual void RemoveListener(IListener& listener) override { m_listeners.Remove(&listener); }
+
 			virtual bool InitOdin(const char* accessKey) override;
 			virtual void Shutdown() override;
 			virtual void SetAccessKey(const char* accessKey) override { m_AccessKey = accessKey; };
@@ -56,6 +59,8 @@ namespace Cry
 			std::unordered_map<uint64_t, std::unique_ptr<CCryOdinUser>> m_userMap;
 
 			CCryOdinUser* m_localUser;
+
+			CListenerSet<IListener*> m_listeners = 1;
 		};
 	}
 }

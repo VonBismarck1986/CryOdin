@@ -8,8 +8,6 @@ namespace Cry
 
 		static ma_result odin_read_pcm_frames(OdinDataSource* pOdinDataSource, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead)
 		{
-			//size_t sampleCount = 0;
-
 			ma_uint32 framesWritten = 0;
 
 			OdinReturnCode error;
@@ -26,18 +24,6 @@ namespace Cry
 
 			if (pFramesOut != NULL)
 			{
-				//if (pOdinDataSource->config.media_handle != NULL)
-				//{
-				//	sampleCount = frameCount * 2;
-				//
-				//	float* framesout = (float*)pFramesOut;
-				//
-				//	odin_audio_process_reverse(pOdinDataSource->config.room, framesout, sampleCount);
-				//
-				//	odin_audio_read_data(pOdinDataSource->config.media_handle, framesout, sampleCount);
-				//
-				//	
-				//}
 
 				while (framesWritten < frameCount)
 				{
@@ -48,13 +34,6 @@ namespace Cry
 
 					if (pOdinDataSource->config.media_handle == NULL)
 						break;
-
-					//error = odin_audio_data_len(pOdinDataSource->config.media_handle);
-					//if (odin_is_error(error))
-					//{
-					//	ODIN_LOG("Error with data len with media_handle ( %d )", pOdinDataSource->config.media_handle);
-					//	break;
-					//}
 
 					error = odin_audio_process_reverse(pOdinDataSource->config.room, framesout, framesToWrite);
 					if (odin_is_error(error))
@@ -158,6 +137,10 @@ namespace Cry
 
 		ma_result odin_data_source_uninit(OdinDataSource* pDataSource)
 		{
+			pDataSource->config.room = 0;
+			pDataSource->config.media_handle = 0;
+			
+			ma_data_source_uninit(&pDataSource->base);
 			return MA_SUCCESS;
 		}
 

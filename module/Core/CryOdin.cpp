@@ -32,11 +32,6 @@ namespace Cry
 
 		CCryOdin::~CCryOdin()
 		{
-			if (s_instance)
-			{
-				SAFE_DELETE(s_instance);
-				s_instance = nullptr;
-			}
 		}
 
 		CCryOdin* CCryOdin::Get()
@@ -76,6 +71,22 @@ namespace Cry
 
 		void CCryOdin::Shutdown()
 		{
+			m_pAudioSystem->ShutdownAudioSystem();
+			m_pAudioSystem.release();
+
+			for (auto& it : m_userMap)
+			{
+				odin_media_stream_destroy(it.second->GetMediaHandle(EAudioHandleType::eAHT_Output));
+			}
+
+			if (m_localUser)
+			{
+				odin_media_stream_destroy(m_localUser->GetMediaHandle(EAudioHandleType::eAHT_Input));
+				odin_room_close(m_room);
+				odin_room_destroy(m_room);
+				odin_shutdown();
+			}
+
 			if (s_instance)
 			{
 				SAFE_DELETE(s_instance);
@@ -263,6 +274,9 @@ namespace Cry
 					m_localUser->SetPeerID(peer_id);
 					m_localUser->SetUserID(user_id);
 
+					m_listeners.ForEach([&room_id](IListener* pListener) {
+						pListener->OnJoinedRoom(room_id);
+					});
 
 					// Print information about joined room to the console
 					ODIN_LOG("Room '%s' owned by '%s' joined successfully as Peer(%" PRIu64 ") with user ID '%d'\n", room_id, customer, peer_id, user_id);
@@ -286,7 +300,13 @@ namespace Cry
 
 					auto user = std::make_unique<CCryOdinUser>(peer_id, pEntity->GetId());
 					user->SetRoomHandle(room);
-				
+
+					ODIN_LOG("%s", user->ToStringDebug().c_str());
+
+					m_listeners.ForEach([&user](IListener* pListener) {
+						pListener->OnPeerJoined(user.get());
+					});
+
 					m_userMap.emplace(std::make_pair(peer_id, std::move(user)));
 				}
 				break;
@@ -297,6 +317,9 @@ namespace Cry
 					if (it != m_userMap.end())
 					{
 						ODIN_LOG("Found Peer (%" PRIu64 ") removing from map ", peer_id);
+						m_listeners.ForEach([&it](IListener* pListener) {
+							pListener->OnPeerJoined(it->second.get());
+						});
 						m_userMap.erase(it);
 					}
 				}
@@ -324,8 +347,6 @@ namespace Cry
 						it->second->SetMediaHandle(EAudioHandleType::eAHT_Output, event->media_added.media_handle);
 
 						m_pAudioSystem->CreateAudioObject(*it->second);
-
-
 						ODIN_LOG("Found Peer (%" PRIu64 ") and Added MediaHandle ( %d )", peer_id, media_id);
 					}
 					else {
@@ -333,15 +354,25 @@ namespace Cry
 					}
 				}
 				break;
+				case OdinEvent_MediaActiveStateChanged:
+				{
+					//uint16_t media_id = get_media_id_from_handle(event->media_active_state_changed.media_handle);
+					uint64_t peer_id = event->media_active_state_changed.peer_id;
+					bool state = event->media_active_state_changed.active ? true : false;
 
+					auto it = m_userMap.find(peer_id);
+					if (it != m_userMap.end())
+					{
+						it->second->Talking(state);
+						ODIN_LOG("Peer (%" PRIu64 ") is %s", it->first, state ? "talking" : "stopped");
+						break;
+					}
 
+					ODIN_LOG("Peer (%" PRIu64 ") is %s", peer_id, state ? "talking" : "stopped");
 
-
+				}
+				break;
 			}
-
-
-
-
 		}
 
 		const char* CCryOdin::get_name_from_connection_state_change_reason(OdinRoomConnectionStateChangeReason reason)

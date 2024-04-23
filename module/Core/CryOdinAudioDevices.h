@@ -39,6 +39,8 @@ namespace Cry
 
 			void SetInputHandle(OdinMediaStreamHandle inputHandle) { m_inputHandle = inputHandle; }
 			void AddDataSource(OdinDataSource* dataSource) { m_dataSources.push_back(dataSource); }
+
+			void ShutdownAudioDevices();
 		protected:
 			static CCryOdinAudioDevice* s_instance;
 

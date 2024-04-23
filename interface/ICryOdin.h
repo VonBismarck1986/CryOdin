@@ -27,6 +27,19 @@ namespace Cry
 		{
 			virtual ~ICryOdin() {}
 
+			struct IListener
+			{
+				virtual void OnJoinedRoom(const char* room_name) = 0;
+				virtual void OnPeerJoined(ICryOdinUser* user) = 0;
+				virtual void OnPeerLeft(ICryOdinUser* user) = 0;
+				virtual void OnPeerUserDataUpated(ICryOdinUser* user) = 0;
+			};
+
+			//! Used to register Odin listeners
+			virtual void AddListener(IListener& listener, const char* szName) = 0;
+			//! Used to remove Odin listeners
+			virtual void RemoveListener(IListener& listener) = 0;
+
 			// Start Up Odin and pass your accessKey.
 			// It's recommend to pass key from a rest-api 
 			// @param const char* - your Odin Access Key
@@ -51,6 +64,8 @@ namespace Cry
 			// Set up APM Config for Odin and current user, note this effect current user APM settings / Room APM
 			//@param OdinApmConfig - base struct for APM settings
 			virtual void SetOdinApmConfig(OdinApmConfig config) = 0;
+
+
 
 			virtual bool SetUpLocalUser(const char* user_name, EntityId entityId) = 0;
 
