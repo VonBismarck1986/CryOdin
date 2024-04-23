@@ -144,15 +144,6 @@ namespace Cry
 			return MA_SUCCESS;
 		}
 
-		ma_result odin_data_source_sound_removed(OdinDataSource* pDataSource, size_t index)
-		{
-			//pDataSource->config.output_streams_len -= 1;
-			//pDataSource->config.output_streams[index] = pDataSource->config.output_streams[pDataSource->config.output_streams_len];
-			//pDataSource->config.output_streams[pDataSource->config.output_streams_len] = 0;
-
-			return MA_SUCCESS;
-		}
-
 		ma_result odin_data_source_update_config(const OdinDataSourceConfig* pConfig, OdinDataSource* pDataSource)
 		{
 			if (pConfig != NULL)

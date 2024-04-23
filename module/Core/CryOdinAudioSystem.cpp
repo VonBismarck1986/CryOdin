@@ -8,12 +8,22 @@
 #include "CryOdinAudioDataSource.h"
 #include "CryOdinUser.h"
 
+#include <CryRenderer/IRenderAuxGeom.h>
+
 namespace Cry
 {
 	namespace Odin
 	{
-		OdinDataSource odinData; //TODO: make this as a array
-		OdinDataSourceConfig odinConfig; //TODO: make this as array
+		constexpr int max_data_obj = 1000;
+		int data_counter = 0;
+
+		OdinDataSource odinData[max_data_obj]; //TODO: make this as a array
+		OdinDataSourceConfig odinConfig[max_data_obj]; //TODO: make this as array
+
+		constexpr uint32 g_numIndices = 6;
+		constexpr vtx_idx g_auxIndices[g_numIndices] = { 2, 1, 0, 2, 3, 1 };
+		constexpr uint32 g_numPoints = 4;
+		constexpr float g_listenerHeadSizeHalf = 0.5f;
 
 		static ma_allocation_callbacks MemoryCallback = {
 			nullptr,
@@ -96,7 +106,7 @@ namespace Cry
 			}
 
 			ma_engine_listener_set_world_up(&m_engine, 0, 0.0f, 0.0f, 1.0f); // double check on this, make sure it's Cryengine world UP position
-			ma_engine_listener_set_cone(&m_engine, 0, 10.f, 25.f, 0.25f);
+			ma_engine_listener_set_cone(&m_engine, 0, 10.f, 45.f, 0.25f);
 
 			return true;
 		}
@@ -122,7 +132,10 @@ namespace Cry
 
 			ma_resource_manager_uninit(&m_resourceManager);
 
-			odin_data_source_uninit(&odinData);
+			for (int i{ 0 }; i < data_counter; ++i)
+			{
+				odin_data_source_uninit(&odinData[i]);
+			}
 
 
 			if (s_instance)
@@ -141,14 +154,16 @@ namespace Cry
 
 		void CCryOdinAudioSystem::CreateAudioObject(const ICryOdinUser& ref)
 		{
-			odinConfig.channels = 2;
-			odinConfig.format = ma_format_f32;
-			odinConfig.media_handle = ref.GetMediaHandle(EAudioHandleType::eAHT_Output);
-			odinConfig.room = ref.GetRoomHandle();
+			data_counter += 1;
 
-			odin_data_source_init(&odinConfig, &odinData);
+			odinConfig[data_counter].channels = 2;
+			odinConfig[data_counter].format = ma_format_f32;
+			odinConfig[data_counter].media_handle = ref.GetMediaHandle(EAudioHandleType::eAHT_Output);
+			odinConfig[data_counter].room = ref.GetRoomHandle();
 
-			auto temp = std::make_unique<CCryOdinSound>(&m_engine, &odinData, CryAudio::CTransformation::GetEmptyObject());
+			odin_data_source_init(&odinConfig[data_counter], &odinData[data_counter]);
+
+			auto temp = std::make_unique<CCryOdinSound>(&m_engine, &odinData[data_counter], CryAudio::CTransformation::GetEmptyObject());
 
 			IEntity* entity = gEnv->pEntitySystem->GetEntity(ref.GetUserId());
 			temp->SetEntity(entity);
@@ -156,8 +171,23 @@ namespace Cry
 			temp->StartSound();
 
 			m_sounds.push_back(std::move(temp));
+		}
 
+		void Cry::Odin::CCryOdinAudioSystem::DestroyAudioObject(const ICryOdinUser& ref)
+		{
+			data_counter -= 1;
 
+			for (auto& sound : m_sounds)
+			{
+				if (sound->GetAttachedEntity()->GetId() == ref.GetUserId())
+				{
+					sound->StopSound();
+					sound->Destory();
+					sound.release();
+
+					odin_data_source_uninit(&odinData[data_counter]);
+				}
+			}
 		}
 
 		void CCryOdinAudioSystem::OnUpdate(float const frameTime)
@@ -170,8 +200,6 @@ namespace Cry
 					UpdateLocalUserListeners(frameTime); // Why in here? well if there's no sound, no reason to listen
 				}
 			}
-
-
 		}
 
 		void CCryOdinAudioSystem::UpdateLocalUserListeners(float const frameTime)
@@ -233,7 +261,7 @@ namespace Cry
 			}
 		}
 
-
+		
 
 	}
 }

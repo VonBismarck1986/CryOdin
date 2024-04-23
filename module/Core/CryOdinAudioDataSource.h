@@ -32,8 +32,6 @@ namespace Cry
 
 		ma_result odin_data_source_init(const OdinDataSourceConfig* pConfig, OdinDataSource* pDataSource);
 		ma_result odin_data_source_uninit(OdinDataSource* pDataSource);
-		ma_result odin_data_source_sound_removed(OdinDataSource* pDataSource, size_t index);
-
 		ma_result odin_data_source_update_config(const OdinDataSourceConfig* pConfig, OdinDataSource* pDataSource);
 	}
 }

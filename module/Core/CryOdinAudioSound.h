@@ -24,9 +24,13 @@ namespace Cry
 
 			virtual void SetSoundVolume(float fAmount) override;
 			virtual float GetSoundVolume() const override;
+			virtual CryAudio::CTransformation GetTransform() override { return m_transform; }
 
 			void OnUpdate(float const frameTime);
 			void SetEntity(IEntity* entity) { m_pEntity = entity; }
+			IEntity* GetAttachedEntity() { return m_pEntity; }
+
+			void Destory();
 		private:
 			static ma_sound m_sound;
 			IEntity* m_pEntity = nullptr;

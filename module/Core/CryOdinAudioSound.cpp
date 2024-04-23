@@ -23,7 +23,6 @@ namespace Cry
 			ma_sound_set_direction(&m_sound, m_transform.GetForward().x, m_transform.GetForward().y, m_transform.GetForward().z);
 			ma_sound_set_looping(&m_sound, MA_TRUE);
 			ma_sound_set_volume(&m_sound, ma_volume_db_to_linear(10.f));
-
 		}
 
 		void CCryOdinSound::StartSound()
@@ -59,6 +58,11 @@ namespace Cry
 				gEnv->pRenderer->GetIRenderAuxGeom()->DrawSphere(m_transform.GetPosition(), 1.2f, Col_Blue);
 				gEnv->pRenderer->GetIRenderAuxGeom()->DrawLine(m_transform.GetForward(), Col_Red, m_transform.GetForward() * 2, Col_Red, 2.5f);
 			}
+		}
+
+		void CCryOdinSound::Destory()
+		{
+			ma_sound_uninit(&m_sound);
 		}
 
 

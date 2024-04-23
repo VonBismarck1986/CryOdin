@@ -327,10 +327,12 @@ namespace Cry
 				case OdinEvent_PeerUserDataChanged:
 				{
 					uint64_t peer_id = event->peer_user_data_changed.peer_id;
+					auto data = event->peer_user_data_changed.peer_user_data;
 					size_t peer_user_data_len = event->peer_user_data_changed.peer_user_data_len;
 
 					// Print information about the peers user data to the console
 					ODIN_LOG("Peer(%" PRIu64 ") user data updated with %zu bytes\n", peer_id, peer_user_data_len);
+					ODIN_LOG("%s", (const char*)data);
 				}
 				break;
 				case OdinEvent_MediaAdded:
@@ -369,6 +371,22 @@ namespace Cry
 					}
 
 					ODIN_LOG("Peer (%" PRIu64 ") is %s", peer_id, state ? "talking" : "stopped");
+
+				}
+				break;
+				case OdinEvent_MediaRemoved:
+				{
+					uint64_t peer_id = event->media_removed.peer_id;
+					//uint16_t media_id = get_media_id_from_handle(event->media_removed.media_handle);
+
+					auto it = m_userMap.find(peer_id);
+					if (it != m_userMap.end())
+					{
+						m_pAudioSystem->DestroyAudioObject(*it->second);
+						it->second->SetMediaHandle(EAudioHandleType::eAHT_Output, 0); // zero out.. maybe not needed
+
+						//m_userMap.erase(it);
+					}
 
 				}
 				break;

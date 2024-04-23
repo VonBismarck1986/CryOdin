@@ -25,6 +25,8 @@ namespace Cry
 			virtual ma_engine* GetAudioEngine() override;
 
 			virtual void CreateAudioObject(const ICryOdinUser& ref) override;
+			virtual void DestroyAudioObject(const ICryOdinUser& ref) override;
+
 			virtual void OnUpdate(float const frameTime) override;
 
 			void SetInputHandle(OdinMediaStreamHandle inputHandle);

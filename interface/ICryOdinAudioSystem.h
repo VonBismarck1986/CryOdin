@@ -18,6 +18,8 @@ namespace Cry
 			virtual ma_engine* GetAudioEngine() = 0;
 
 			virtual void CreateAudioObject(const ICryOdinUser& ref) = 0;
+			virtual void DestroyAudioObject(const ICryOdinUser& ref) = 0;
+
 			virtual void OnUpdate(float const frameTime) = 0;
 
 		};

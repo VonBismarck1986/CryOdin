@@ -17,6 +17,8 @@ namespace Cry
 			virtual void StopSound() = 0;
 			virtual void SetSoundVolume(float fAmount) = 0;
 			virtual float GetSoundVolume() const = 0;
+
+			virtual CryAudio::CTransformation GetTransform() = 0;
 		};
 	}
 }
