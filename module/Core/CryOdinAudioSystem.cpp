@@ -8,6 +8,8 @@
 #include "CryOdinAudioDataSource.h"
 #include "CryOdinUser.h"
 #include "CryOdinAudioOcclusion.h"
+#include "ICryOdinUser.h"
+#include "Components/CryOdinUserComponent.h"
 
 #include <CryRenderer/IRenderAuxGeom.h>
 
@@ -101,7 +103,7 @@ namespace Cry
 			}
 
 			// Start Devices
-			m_pAudioDevice.reset(new CCryOdinAudioDevice(&m_engine,EOdinDataSourceFlags::NONE));
+			m_pAudioDevice.reset(new CCryOdinAudioDevice(&m_engine, EOdinEffectsFlags::NONE));
 
 			ma_engine_config engineConfig;
 			engineConfig = ma_engine_config_init();
@@ -167,17 +169,17 @@ namespace Cry
 			return &m_engine;
 		}
 
-		void CCryOdinAudioSystem::CreateAudioObject(const ICryOdinUser& ref)
+		void CCryOdinAudioSystem::CreateAudioObject(const CCryOdinUserComponent& ref)
 		{
 			data_counter += 1;
 			
 			// We based sound ID and DataSource on media handle
-			uint16_t handle = get_media_id_from_handle(ref.GetMediaHandle(EAudioHandleType::eAHT_Output));
+			uint16_t handle = get_media_id_from_handle(ref.GetOdinUser()->GetMediaHandle(EAudioHandleType::eAHT_Output));
 
 			odinConfig[handle].channels = 2;
 			odinConfig[handle].format = ma_format_f32;
-			odinConfig[handle].media_handle = ref.GetMediaHandle(EAudioHandleType::eAHT_Output);
-			odinConfig[handle].room = ref.GetRoomHandle();
+			odinConfig[handle].media_handle = ref.GetOdinUser()->GetMediaHandle(EAudioHandleType::eAHT_Output);
+			odinConfig[handle].room = ref.GetOdinUser()->GetRoomHandle();
 			odinConfig[handle].usingNode = true;
 
 
@@ -196,7 +198,7 @@ namespace Cry
 
 			auto temp = std::make_unique<CCryOdinSound>(&m_engine, &odinData[handle], CryAudio::CTransformation::GetEmptyObject(), handle);
 
-			IEntity* entity = gEnv->pEntitySystem->GetEntity(ref.GetUserId()); //TODO:: Change this, it works but, we cannot sure EntityIDs will be the same accross the network
+			IEntity* entity = gEnv->pEntitySystem->GetEntity(ref.GetEntityId()); //TODO:: Change this, it works but, we cannot sure EntityIDs will be the same accross the network
 			temp->SetEntity(entity);
 			temp->StartSound();
 
@@ -211,12 +213,12 @@ namespace Cry
 #endif // _PROFILE || _DEBUG
 		}
 
-		void Cry::Odin::CCryOdinAudioSystem::DestroyAudioObject(const ICryOdinUser& ref)
+		void Cry::Odin::CCryOdinAudioSystem::DestroyAudioObject(const CCryOdinUserComponent& ref)
 		{
 		
 			for (auto& sound : m_sounds)
 			{
-				if (sound->GetAttachedEntity()->GetId() == ref.GetUserId())
+				if (sound->GetAttachedEntity()->GetId() == ref.GetEntityId())
 				{
 					sound->StopSound();
 					sound->Destory();
@@ -247,12 +249,11 @@ namespace Cry
 
 		void CCryOdinAudioSystem::UpdateLocalUserListeners(float const frameTime)
 		{
-			auto pEntity = gEnv->pEntitySystem->GetEntity(m_pUser->GetUserId());
-			if (pEntity)
+			if (m_pUser->GetEntity())
 			{
-				auto dir = pEntity->GetForwardDir();
-				auto pos = pEntity->GetWorldPos();
-
+				auto dir = m_pUser->GetEntity()->GetForwardDir();
+				auto pos = m_pUser->GetEntity()->GetWorldPos();
+				
 				ma_engine_listener_set_direction(&m_engine, 0, dir.x, dir.y, dir.z);
 				ma_engine_listener_set_position(&m_engine, 0, pos.x, pos.y, pos.z);
 			}
@@ -263,9 +264,9 @@ namespace Cry
 			m_pAudioDevice->SetInputHandle(inputHandle);
 		}
 
-		void CCryOdinAudioSystem::SetLocalUser(CCryOdinUser* pUser)
+		void CCryOdinAudioSystem::SetLocalUser(CCryOdinUserComponent* odinComponent)
 		{
-			m_pUser = pUser;
+			m_pUser = odinComponent;
 		}
 
 

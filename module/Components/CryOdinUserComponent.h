@@ -6,33 +6,29 @@ namespace Cry
 {
 	namespace Odin
 	{
-		class CCryOdinUserComponent : public ICryOdinUserComponent
+		class CCryOdinUserComponent : public IEntityComponent
 		{
 		public:
-			CCryOdinUserComponent() = delete;
-			explicit CCryOdinUserComponent(ICryOdinUser* ref)
-				: m_pOdinUser(ref)
-			{
-				ODIN_LOG("Odin User copied");
-			}
-
+			CCryOdinUserComponent() = default;
 			virtual ~CCryOdinUserComponent() = default;
 
-			virtual void Initialize() override {}
-
+			virtual void Initialize() override;
+			virtual Cry::Entity::EventFlags GetEventMask() const override;
+			virtual void ProcessEvent(const SEntityEvent& event) override;
 
 			// Reflect type to set a unique identifier for this component
 			static void ReflectType(Schematyc::CTypeDesc<CCryOdinUserComponent>& desc)
 			{
-				desc.SetGUID("{071AE72F-0316-478A-869A-DE6BDA1AAF8D}"_cry_guid);
+				desc.SetGUID("{16EB0B3D-747B-479A-BFF1-581881DFA9FC}"_cry_guid);
 				desc.SetLabel("OdinUserComponent");
 				desc.SetEditorCategory("Odin");
 
 			}
 
-			virtual ICryOdinUser* GetOdinUser() override { return m_pOdinUser; }
+			ICryOdinUser* GetOdinUser() const { return m_pOdinUser; }
+			void SetOdinUser(ICryOdinUser* ref) { m_pOdinUser = ref; }
 		private:
-			ICryOdinUser* m_pOdinUser = nullptr;
+			mutable ICryOdinUser* m_pOdinUser = nullptr;
 		};
 	}
 }

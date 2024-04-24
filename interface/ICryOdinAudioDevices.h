@@ -7,14 +7,15 @@ namespace Cry
 {
 	namespace Odin
 	{
-		enum class EOdinDataSourceFlags : uint32
+		enum class EOdinEffectsFlags : uint32
 		{
 			NONE = BIT(0),
 			RADIO = BIT(1),
+			OCCLUSION = BIT(2)
 		};
 
-		using OdinDataFlags = CEnumFlags<EOdinDataSourceFlags>;
-		CRY_CREATE_ENUM_FLAG_OPERATORS(EOdinDataSourceFlags);
+		using OdinDataFlags = CEnumFlags<EOdinEffectsFlags>;
+		CRY_CREATE_ENUM_FLAG_OPERATORS(EOdinEffectsFlags);
 
 		struct SCryOdinAudioDevicesConfig
 		{

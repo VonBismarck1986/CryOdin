@@ -55,6 +55,7 @@ void Cry::Odin::CCryOdinPlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparm
 	{
 		case ESYSTEM_EVENT_REGISTER_SCHEMATYC_ENV:
 		{
+		
 			// Register all components that belong to this plug-in
 			auto staticAutoRegisterLambda = [](Schematyc::IEnvRegistrar& registrar)
 				{
@@ -67,9 +68,9 @@ void Cry::Odin::CCryOdinPlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparm
 				gEnv->pSchematyc->GetEnvRegistry().RegisterPackage(
 					stl::make_unique<Schematyc::CEnvPackage>(
 						CCryOdinPlugin::GetCID(),
-						"CryOdin",
-						"",
-						"Audio",
+						"EntityComponents",
+						"Bismarck",
+						"Components",
 						staticAutoRegisterLambda
 					)
 				);

@@ -62,7 +62,7 @@ namespace Cry
 				ODIN_LOG("Microphone set to %s", m_config.input.capture.name);
 			}
 
-			if (m_flags == EOdinDataSourceFlags::RADIO)
+			if (m_flags == EOdinEffectsFlags::RADIO)
 			{
 				g_noiseConfig.channels = 2;
 				g_noiseConfig.duplicateChannels = MA_TRUE;

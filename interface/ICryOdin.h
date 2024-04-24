@@ -11,7 +11,6 @@ namespace Cry
 	{
 		struct ICryOdin;
 
-
 		struct ICryOdinPlugin : public IEnginePlugin
 		{
 			CRYINTERFACE_DECLARE_GUID(ICryOdinPlugin, "{71A991C6-8E56-4BA2-9F23-68CCC301BF71}"_cry_guid);
@@ -22,6 +21,7 @@ namespace Cry
 
 
 		/* Probably shoud seprate these two in different files ( headers ) but, I'm too lazy... so yea :D */
+		class CCryOdinUserComponent;
 
 		struct ICryOdin
 		{
@@ -30,9 +30,9 @@ namespace Cry
 			struct IListener
 			{
 				virtual void OnJoinedRoom(const char* room_name) = 0;
-				virtual void OnPeerJoined(ICryOdinUserComponent* user) = 0;
-				virtual void OnPeerLeft(ICryOdinUserComponent* user) = 0;
-				virtual void OnPeerUserDataUpated(ICryOdinUserComponent* user) = 0;
+				virtual void OnPeerJoined(CCryOdinUserComponent* user) = 0;
+				virtual void OnPeerLeft(CCryOdinUserComponent* user) = 0;
+				virtual void OnPeerUserDataUpated(CCryOdinUserComponent* user) = 0;
 			};
 
 			//! Used to register Odin listeners
@@ -69,7 +69,7 @@ namespace Cry
 
 			virtual bool SetUpLocalUser(const char* user_name, EntityId entityId) = 0;
 
-			virtual bool JoinRoom(const char* room_name,const OdinApmConfig& config, EntityId entityId) = 0;
+			virtual bool JoinRoom(const char* room_name, const OdinApmConfig& config, CCryOdinUserComponent* odinComponent) = 0;
 
 		};
 

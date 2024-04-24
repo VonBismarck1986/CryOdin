@@ -60,7 +60,7 @@ namespace Cry
 
 			OdinMediaStreamHandle m_inputHandle;
 
-			OdinDataFlags m_flags = EOdinDataSourceFlags::NONE;
+			OdinDataFlags m_flags = EOdinEffectsFlags::NONE;
 			bool m_bSoundStarted = false;
 			//ma_node_graph m_nodeGraph;
 

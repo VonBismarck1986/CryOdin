@@ -29,3 +29,16 @@ static void print_error(OdinReturnCode error, const char* text)
 }
 
 #define DEFAULT_ODIN_URL "gateway.odin.4players.io"
+
+
+#include <CrySchematyc/Reflection/TypeDesc.h>
+#include <CrySchematyc/Utils/EnumFlags.h>
+#include <CrySchematyc/Env/IEnvRegistry.h>
+#include <CrySchematyc/Env/IEnvRegistrar.h>
+#include <CrySchematyc/Env/Elements/EnvComponent.h>
+#include <CrySchematyc/Env/Elements/EnvFunction.h>
+#include <CrySchematyc/Env/Elements/EnvSignal.h>
+#include <CrySchematyc/ResourceTypes.h>
+#include <CrySchematyc/MathTypes.h>
+#include <CrySchematyc/Utils/SharedString.h>
+#include <CryCore/StaticInstanceList.h>

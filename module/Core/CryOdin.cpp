@@ -141,16 +141,22 @@ namespace Cry
 
 		bool CCryOdin::SetUpLocalUser(const char* user_name, EntityId entityId)
 		{
-			m_localUser = new CCryOdinUser(user_name, 0, entityId);
-			m_pAudioSystem->SetLocalUser(m_localUser);
+			//m_localUser = new CCryOdinUser(user_name, 0, entityId);
+			//m_pAudioSystem->SetLocalUser(m_localUser);
 
 			return true;
 		}
 
-		bool CCryOdin::JoinRoom(const char* room_name, const OdinApmConfig& config, EntityId entityId)
+		bool CCryOdin::JoinRoom(const char* room_name, const OdinApmConfig& config, CCryOdinUserComponent* odinComponent)
 		{
-			if (m_localUser->GetUserId() == entityId)
+			if (odinComponent->GetEntityId() != INVALID_ENTITYID)
 			{
+				if (odinComponent->GetEntityId() == LOCAL_PLAYER_ENTITY_ID)
+				{
+					odinComponent->SetOdinUser(new CCryOdinUser(odinComponent->GetName(), 0, odinComponent->GetEntityId()));
+					m_localUser = static_cast<CCryOdinUser*>(odinComponent->GetOdinUser());
+				}
+
 				OdinReturnCode error;
 				ODIN_LOG("Joining room with local user");
 
@@ -161,21 +167,21 @@ namespace Cry
 					print_error(error, "Failed to set room event callback");
 				}
 
-				auto id = m_localUser->GetUserId();
+				auto id = odinComponent->GetOdinUser()->GetUserId();
 				auto user_id = string().Format("%i", id);
-				ODIN_LOG("USER ID : %s", user_id.c_str());
+				string user_name = string().Format("{\"name\":\"%s\"}", odinComponent->GetOdinUser()->GetUserName().c_str());
 
 				auto room_key = GenerateRoomToken(room_name, user_id.c_str());
 
 
-				error = odin_room_update_peer_user_data(m_room, (uint8_t*)m_localUser->GetUserName().c_str(), strlen(m_localUser->GetUserName()));
+				error = odin_room_update_peer_user_data(m_room, (uint8_t*)user_name.c_str(), strlen(user_name));
 				if (odin_is_error(error))
 				{
 					print_error(error, "Failed to set user data");
 					return false;
 				}
 
-				ODIN_LOG("Setting Username: %s", m_localUser->GetUserName().c_str());
+				ODIN_LOG("Setting Username: %s", user_name);
 
 				error = odin_room_configure_apm(m_room, config);
 				if (odin_is_error(error))
@@ -196,17 +202,19 @@ namespace Cry
 				streamConfig.channel_count = 1;
 				streamConfig.sample_rate = 48000;
 
-				m_localUser->SetMediaHandle(EAudioHandleType::eAHT_Input, odin_audio_stream_create(streamConfig));
+				odinComponent->GetOdinUser()->SetMediaHandle(EAudioHandleType::eAHT_Input, odin_audio_stream_create(streamConfig));
 
 
-				error = odin_room_add_media(m_room, m_localUser->GetMediaHandle(EAudioHandleType::eAHT_Input));
+				error = odin_room_add_media(m_room, odinComponent->GetOdinUser()->GetMediaHandle(EAudioHandleType::eAHT_Input));
 				if (odin_is_error(error))
 				{
 					print_error(error, "Failed to add media stream");
 					return false;
 				}
 
-				m_pAudioSystem->SetInputHandle(m_localUser->GetMediaHandle(EAudioHandleType::eAHT_Input));
+				m_pAudioSystem->SetLocalUser(odinComponent);
+
+				m_pAudioSystem->SetInputHandle(odinComponent->GetOdinUser()->GetMediaHandle(EAudioHandleType::eAHT_Input));
 				return true;
 			}
 
@@ -282,6 +290,8 @@ namespace Cry
 						pListener->OnJoinedRoom(room_id);
 					});
 
+					//m_userMap.emplace(std::make_pair(peer_id, std::move(localUser)));
+
 					// Print information about joined room to the console
 					ODIN_LOG("Room '%s' owned by '%s' joined successfully as Peer(%" PRIu64 ") with user ID '%d'\n", room_id, customer, peer_id, user_id);
 					ODIN_LOG("OdinID set to (%" PRIu64 ")\n", m_localUser->GetPeerId());
@@ -290,50 +300,33 @@ namespace Cry
 				break;
 				case OdinEvent_PeerJoined:
 				{
-					const char* user_id = event->peer_joined.user_id;
+					//const char* user_id = event->peer_joined.user_id;
 					uint64_t peer_id = event->peer_joined.peer_id;
-					size_t peer_user_data_len = event->peer_joined.peer_user_data_len;
-
-					// Print information about the peer to the console
-					ODIN_LOG("Peer(%" PRIu64 ") joined with user ID '%s'\n", peer_id, user_id);
-					// Print information about the peers user data to the console
-					ODIN_LOG("Peer(%" PRIu64 ") has user data with %zu bytes\n", peer_id, peer_user_data_len);
-					//uint64_t userId = convertOdinUserIDToUint64(user_id);
-
 					auto user_data = (char*)event->peer_joined.peer_user_data;
-					ODIN_LOG("Output: %s", user_data);
-
+			
 					// Create the object into which we will parse the data
-					//SNativeJsonRepresentation parsedObject;
-					//// Parse the provided JSON into 'parsedObject'
-					//// Note that Serialization::LoadJsonFile can also be used to read from disk
-					//if (Serialization::LoadJsonBuffer(parsedObject, user_data, sizeof(user_data)))
-					//{
-					//	// Buffer was successfully parsed into 'parsedObject'.
-					//
-					//	/* Modify 'parsedObject' here */
-					//	parsedObject.myString;
-					//
-					//
-					//	// Save the object to disk
-					//	//Serialization::SaveJsonFile("MyJsonFile.json", parsedObject);
-					//}
+					SNativeJsonOdinUser parsedObject;
+					
+					if (Serialization::LoadJsonBuffer(parsedObject, user_data, sizeof(user_data)))
+					{
+						auto id = convertOdinUserIDToUint64(parsedObject.userId.c_str());
+						auto user = new CCryOdinUser(parsedObject.name, peer_id, id);
 
+						user->SetRoomHandle(room);
+						user->SetRoomName("fix-me");
+						user->SetMicMuted(parsedObject.inputMuted);
+						user->SetSpeakersMuted(parsedObject.outputMuted);
+						user->SetOnlineStatus(parsedObject.status);
 
-					auto user = new CCryOdinUser(peer_id, INVALID_ENTITYID);
-					user->SetRoomHandle(room);
+						auto pUserComponent = std::make_unique<CCryOdinUserComponent>();
+						pUserComponent->SetOdinUser(std::move(user));
 
-					ODIN_LOG("%s", user->ToStringDebug().c_str());
+						m_listeners.ForEach([&pUserComponent](IListener* pListener) {
+							pListener->OnPeerJoined(pUserComponent.get());
+							});
 
-					auto pUserComponent = std::make_unique<CCryOdinUserComponent>(std::move(user));
-
-
-
-					m_listeners.ForEach([&pUserComponent](IListener* pListener) {
-						pListener->OnPeerJoined(static_cast<ICryOdinUserComponent*>(pUserComponent.get()));
-					});
-
-					m_userMap.emplace(std::make_pair(peer_id, std::move(pUserComponent)));
+						m_userMap.emplace(std::make_pair(peer_id, std::move(pUserComponent)));
+					}
 				}
 				break;
 				case OdinEvent_PeerLeft:
@@ -344,7 +337,7 @@ namespace Cry
 					{
 						ODIN_LOG("Found Peer (%" PRIu64 ") removing from map ", peer_id);
 						m_listeners.ForEach([&it](IListener* pListener) {
-							pListener->OnPeerJoined(static_cast<ICryOdinUserComponent*>(it->second.get()));
+							pListener->OnPeerJoined(it->second.get());
 						});
 						m_userMap.erase(it);
 					}
@@ -358,7 +351,7 @@ namespace Cry
 
 					// Print information about the peers user data to the console
 					ODIN_LOG("Peer(%" PRIu64 ") user data updated with %zu bytes\n", peer_id, peer_user_data_len);
-					ODIN_LOG("%s", (const char*)data);
+					ODIN_LOG("DataChange: %s", (const char*)data);
 				}
 				break;
 				case OdinEvent_MediaAdded:
@@ -379,7 +372,7 @@ namespace Cry
 							{
 								it->second->GetOdinUser()->SetMediaHandle(EAudioHandleType::eAHT_Output, event->media_added.media_handle);
 
-								m_pAudioSystem->CreateAudioObject(*it->second->GetOdinUser());
+								m_pAudioSystem->CreateAudioObject(*it->second);
 								ODIN_LOG("Found Peer (%" PRIu64 ") and Added MediaHandle ( %d )", peer_id, media_id);
 							}
 						}
@@ -416,7 +409,7 @@ namespace Cry
 					auto it = m_userMap.find(peer_id);
 					if (it != m_userMap.end())
 					{
-						m_pAudioSystem->DestroyAudioObject(*it->second->GetOdinUser());
+						m_pAudioSystem->DestroyAudioObject(*it->second);
 						it->second->GetOdinUser()->SetMediaHandle(EAudioHandleType::eAHT_Output, 0); // zero out.. maybe not needed
 
 						//m_userMap.erase(it);

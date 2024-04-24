@@ -36,14 +36,23 @@ namespace Cry
 			virtual const char* RoomName() const override { return m_RoomName.c_str(); }
 			virtual OdinMediaStreamHandle GetMediaHandle(EAudioHandleType type) const override;
 			virtual OdinRoomHandle GetRoomHandle() const override { return m_room; }
+			virtual string GetStatus() const override { return m_OnlineStatus; }
 
 			virtual string ToStringDebug() const override;
+
 			virtual bool IsTalking() override { return m_bTalking; }
-
-
 			virtual void Talking(bool yesNo) override { m_bTalking = yesNo; }
+			virtual bool IsMicMuted() override { return m_bInputMuted; }
+			virtual bool IsSpeakersMuted() override { return m_bOutputMuted; }
+
+
 			void SetPeerID(uint64_t id) { m_PeerID = id; }
 			void SetUserID(uint64_t id) { m_UserID = id; }
+
+			void SetMicMuted(bool yesNo) { m_bInputMuted = yesNo; }
+			void SetSpeakersMuted(bool yesNo) { m_bOutputMuted = yesNo; }
+			void SetRoomName(const char* name) { m_RoomName = name; }
+			void SetOnlineStatus(string online) { m_OnlineStatus = online; }
 
 			virtual void SetMediaHandle(EAudioHandleType type, OdinMediaStreamHandle handle) override;
 			virtual void SetRoomHandle(OdinRoomHandle room) override { m_room = room; }
@@ -56,8 +65,12 @@ namespace Cry
 			mutable uint64_t m_UserID;
 
 			CryFixedStringT<128> m_RoomName;
+			string m_debugString;
 
-			bool m_bTalking = false;
+			mutable bool m_bTalking;
+			mutable bool m_bOutputMuted;
+			mutable bool m_bInputMuted;
+			mutable string m_OnlineStatus;
 		};
 	}
 }
