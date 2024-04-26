@@ -31,6 +31,7 @@ namespace Cry
 			{
 				virtual void OnJoinedRoom(const char* room_name) = 0;
 				virtual void OnPeerJoined(CCryOdinUserComponent* user) = 0;
+				virtual void OnPeerMediaAdded(CCryOdinUserComponent* user) = 0;
 				virtual void OnPeerLeft(CCryOdinUserComponent* user) = 0;
 				virtual void OnPeerUserDataUpated(CCryOdinUserComponent* user) = 0;
 			};

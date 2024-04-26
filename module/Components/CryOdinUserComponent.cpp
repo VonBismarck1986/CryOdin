@@ -1,5 +1,7 @@
 #include "StdAfx.h"
-#include "CryOdinUserComponent.h"
+#include "OdinComponents/CryOdinUserComponent.h"
+
+#include "Core/CryOdinAudioSystem.h"
 
 namespace Cry
 {
@@ -20,12 +22,11 @@ namespace Cry
 
 		void CCryOdinUserComponent::Initialize()
 		{
-			ODIN_LOG("Odin Component Created");
 		}
 
 		Cry::Entity::EventFlags CCryOdinUserComponent::GetEventMask() const
 		{
-			return Cry::Entity::EventFlags();
+			return EEntityEvent::Update | EEntityEvent::Reset;
 		}
 
 		void CCryOdinUserComponent::ProcessEvent(const SEntityEvent& event)

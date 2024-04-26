@@ -11,6 +11,7 @@ namespace Cry
 		class CCryOdinAudioDevice;
 		class CCryOdinSound;
 		class CCryOdinUser;
+		class CCryOdinComponentSound;
 
 		class CCryOdinAudioSystem final : public ICryOdinAudioSystem
 		{
@@ -35,10 +36,7 @@ namespace Cry
 		protected:
 			static CCryOdinAudioSystem* s_instance;
 
-
 			static void Logging(void* pUserData, ma_uint32 level, const char* pMessage);
-			void LogMiniAudio(void* pUserData, ma_uint32 level, const char* pMessage);
-
 			void UpdateLocalUserListeners(float const frameTime);
 		private:
 			static ma_engine m_engine;
@@ -50,6 +48,8 @@ namespace Cry
 			std::unique_ptr<CCryOdinOcclusion> m_pOcclusion = nullptr;
 
 			std::vector<std::unique_ptr<CCryOdinSound>> m_sounds;
+
+			std::vector<std::unique_ptr<CCryOdinComponentSound>> m_componentSounds;
 
 			CCryOdinUserComponent* m_pUser = nullptr;
 		};

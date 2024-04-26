@@ -16,7 +16,6 @@ namespace Cry
 		class CCryOdinPlugin final
 			: public Cry::Odin::ICryOdinPlugin
 			, public ISystemEventListener
-			, public IActionListener
 		{
 		public:
 
@@ -47,8 +46,6 @@ namespace Cry
 			virtual void UpdateBeforeRender() override;
 
 			virtual void OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lparam) override;
-
-			virtual void OnAction(const ActionId& action, int activationMode, float value) override;
 
 		private:
 			// Define the name of the action map in which our action will reside

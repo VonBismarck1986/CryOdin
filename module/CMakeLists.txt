@@ -30,6 +30,9 @@ add_sources("CryOdin_Interface.cpp"
 	"../interface/ICryOdinAudioHandle.h"
 	"../interface/ICryOdinAudioSystem.h"
 	"../interface/ICryOdinAudioSound.h"
+	"../interface/OdinComponents/CryOdinComponentListener.h"
+	"../interface/OdinComponents/CryOdinComponentSound.h"
+	"../interface/OdinComponents/CryOdinUserComponent.h"
 )
 
 add_sources("CryOdin_Core.cpp"
@@ -55,7 +58,8 @@ add_sources("CryOdin_Core.cpp"
 add_sources("CryOdin_Components.cpp"
 	SOURCE_GROUP "Components"
 	"Components/CryOdinUserComponent.cpp"
-	"Components/CryOdinUserComponent.h"
+	"Components/CryOdinComponentSound.cpp"
+	"Components/CryOdinComponentListener.cpp"
 
 )
 

@@ -82,29 +82,11 @@ void Cry::Odin::CCryOdinPlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparm
 
 			EnableUpdate(IEnginePlugin::EUpdateStep::BeforeRender, true);
 			EnableUpdate(IEnginePlugin::EUpdateStep::MainUpdate, true);
-			
-			IActionMapManager* pActionMapManager = gEnv->pGameFramework->GetIActionMapManager();
-
-			IActionMap* pActionMap = pActionMapManager->CreateActionMap(m_szMyActionMapName);
-			pActionMapManager->AddExtraActionListener(this, m_szMyActionMapName);
-
-			// Register the action in the group
-			pActionMap->CreateAction(m_myActionId);
-
-			SActionInput input;
-			input.inputDevice = eAID_KeyboardMouse;
-			input.input = input.defaultInput = "enter";
-			input.activationMode = eIS_Pressed | eIS_Released;
-
-			pActionMap->AddAndBindActionInput(m_myActionId, input);
-			pActionMap->Enable(true);
 		}
 		break;
 		case ESYSTEM_EVENT_FAST_SHUTDOWN:
 		case ESYSTEM_EVENT_FULL_SHUTDOWN:
 		{
-			gEnv->pGameFramework->GetIActionMapManager()->RemoveExtraActionListener(this, m_szMyActionMapName);
-			
 			if (m_pOdin)
 			{
 				m_pOdin->Shutdown();
@@ -115,27 +97,6 @@ void Cry::Odin::CCryOdinPlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparm
 		break;
 	}
 
-}
-
-void Cry::Odin::CCryOdinPlugin::OnAction(const ActionId& action, int activationMode, float value)
-{
-	const bool isInputPressed = (activationMode & eIS_Pressed) != 0;
-	const bool isInputReleased = (activationMode & eIS_Released) != 0;
-
-	// Check if the triggered action
-	if (action == m_myActionId)
-	{
-		if (isInputPressed)
-		{
-			CryLogAlways("Action pressed!");
-			//m_pTemp->ToggleEcho();
-			
-		}
-		else if (isInputReleased)
-		{
-			CryLogAlways("Action released!");
-		}
-	}
 }
 
 CRYREGISTER_SINGLETON_CLASS(Cry::Odin::CCryOdinPlugin)

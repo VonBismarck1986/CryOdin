@@ -9,7 +9,9 @@
 #include "CryOdinUser.h"
 #include "CryOdinAudioOcclusion.h"
 #include "ICryOdinUser.h"
-#include "Components/CryOdinUserComponent.h"
+
+#include "OdinComponents/CryOdinUserComponent.h"
+#include "OdinComponents/CryOdinComponentSound.h"
 
 #include <CryRenderer/IRenderAuxGeom.h>
 
@@ -185,7 +187,7 @@ namespace Cry
 
 			odin_data_source_init(&odinConfig[handle], &odinData[handle]);
 
-			//TODO:: come back to node graph method for adding effect...
+			//TODO:: come back to node graph method for adding effects...
 
 			//ma_data_source_node_config dataSourceNodeConfig = ma_data_source_node_config_init(&g_nodes[handle].odin);
 			//ma_result res = odin_data_node_init_ex(&g_nodeGraph, &odinConfig[handle], &g_nodes[handle]);
@@ -196,10 +198,14 @@ namespace Cry
 			//
 			//ma_node_attach_output_bus(&g_nodes[handle].node, 0, &g_splitterNode, 0);
 
+
+
+
+
+
 			auto temp = std::make_unique<CCryOdinSound>(&m_engine, &odinData[handle], CryAudio::CTransformation::GetEmptyObject(), handle);
 
-			IEntity* entity = gEnv->pEntitySystem->GetEntity(ref.GetEntityId()); //TODO:: Change this, it works but, we cannot sure EntityIDs will be the same accross the network
-			temp->SetEntity(entity);
+			temp->SetEntity(ref.GetEntity());
 			temp->StartSound();
 
 			m_pOcclusion->AddSound(temp.get());
@@ -249,10 +255,11 @@ namespace Cry
 
 		void CCryOdinAudioSystem::UpdateLocalUserListeners(float const frameTime)
 		{
-			if (m_pUser->GetEntity())
+			auto pEntity = m_pUser->GetEntity();
+			if (pEntity)
 			{
-				auto dir = m_pUser->GetEntity()->GetForwardDir();
-				auto pos = m_pUser->GetEntity()->GetWorldPos();
+				auto dir = pEntity->GetForwardDir();
+				auto pos = pEntity->GetWorldPos();
 				
 				ma_engine_listener_set_direction(&m_engine, 0, dir.x, dir.y, dir.z);
 				ma_engine_listener_set_position(&m_engine, 0, pos.x, pos.y, pos.z);
@@ -273,35 +280,30 @@ namespace Cry
 		// FOR LOGGING MINIAUDIO BELOW
 		void CCryOdinAudioSystem::Logging(void* pUserData, ma_uint32 level, const char* pMessage)
 		{
-			s_instance->LogMiniAudio(pUserData, level, pMessage);
-		}
-
-		void CCryOdinAudioSystem::LogMiniAudio(void* pUserData, ma_uint32 level, const char* pMessage)
-		{
 			auto enumLevel = static_cast<ma_log_level>(level);
 
 			switch (enumLevel)
 			{
-				case MA_LOG_LEVEL_DEBUG:
-				{
-					ODIN_LOG("[DEBUG] %s",pMessage);
-				}
-				break;
-				case MA_LOG_LEVEL_INFO:
-				{
-					ODIN_LOG("[INFO] %s", pMessage);
-				}
-				break;
-				case MA_LOG_LEVEL_WARNING:
-				{
-					ODIN_LOG("[WARNING] %s", pMessage);
-				}
-				break;
-				case MA_LOG_LEVEL_ERROR:
-				{
-					ODIN_LOG("[ERROR] %s", pMessage);
-				}
-				break;
+			case MA_LOG_LEVEL_DEBUG:
+			{
+				ODIN_LOG("[DEBUG] %s", pMessage);
+			}
+			break;
+			case MA_LOG_LEVEL_INFO:
+			{
+				ODIN_LOG("[INFO] %s", pMessage);
+			}
+			break;
+			case MA_LOG_LEVEL_WARNING:
+			{
+				ODIN_LOG("[WARNING] %s", pMessage);
+			}
+			break;
+			case MA_LOG_LEVEL_ERROR:
+			{
+				ODIN_LOG("[ERROR] %s", pMessage);
+			}
+			break;
 			}
 		}
 

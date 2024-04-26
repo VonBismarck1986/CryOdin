@@ -16,10 +16,18 @@ namespace Cry
 				, m_PeerID(peer_id)
 				, m_UserID(user_id)
 				, m_mediaHandles()
+				, m_bTalking(false)
+				, m_bOutputMuted(false)
+				, m_bInputMuted(false)
+				, m_room(0)
 			{}
 			explicit CCryOdinUser(uint64_t peer_id, uint64_t user_id)
 				: m_PeerID(peer_id)
 				, m_UserID(user_id)
+				, m_bTalking(false)
+				, m_bOutputMuted(false)
+				, m_bInputMuted(false)
+				, m_room(0)
 			{
 				m_mediaHandles[1] = 0;
 				m_mediaHandles[2] = 0;
