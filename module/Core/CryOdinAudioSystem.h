@@ -27,12 +27,16 @@ namespace Cry
 			virtual ma_engine* GetAudioEngine() override;
 
 			virtual void CreateAudioObject(const CCryOdinUserComponent& ref) override;
+			virtual CCryOdinComponentSound* CreateAudioComponent(const CCryOdinUserComponent& ref) override;
+
 			virtual void DestroyAudioObject(const CCryOdinUserComponent& ref) override;
 
 			virtual void OnUpdate(float const frameTime) override;
 
 			void SetInputHandle(OdinMediaStreamHandle inputHandle);
 			void SetLocalUser(CCryOdinUserComponent* odinComponent);
+
+			CCryOdinAudioDevice* GetAudioDevices() { return m_pAudioDevice.get(); }
 		protected:
 			static CCryOdinAudioSystem* s_instance;
 
@@ -49,7 +53,7 @@ namespace Cry
 
 			std::vector<std::unique_ptr<CCryOdinSound>> m_sounds;
 
-			std::vector<std::unique_ptr<CCryOdinComponentSound>> m_componentSounds;
+			std::unordered_map<uint16_t,std::shared_ptr<CCryOdinComponentSound>> m_componentSounds;
 
 			CCryOdinUserComponent* m_pUser = nullptr;
 		};

@@ -22,11 +22,6 @@ namespace Cry
 			virtual OdinRoomHandle GetRoomHandle() const = 0;
 
 			virtual string ToStringDebug() const = 0;
-			virtual void Talking(bool yesNo) = 0;
-			virtual bool IsTalking() = 0;
-
-			virtual bool IsMicMuted() = 0;
-			virtual bool IsSpeakersMuted() = 0;
 
 			virtual void SetMediaHandle(EAudioHandleType type, OdinMediaStreamHandle handle) = 0;
 			virtual void SetRoomHandle(OdinRoomHandle room) = 0;

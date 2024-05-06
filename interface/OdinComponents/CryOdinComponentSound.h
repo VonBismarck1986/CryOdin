@@ -2,7 +2,6 @@
 
 #include <CryEntitySystem/IEntityComponent.h>
 #include <CryAudio/IAudioInterfacesCommonData.h>
-#include <Core/CryOdinAudioDataSource.h>
 #include <ICryOdinAudioSound.h>
 
 namespace Cry
@@ -20,6 +19,14 @@ namespace Cry
 			IsVirtual = BIT(4),
 		};
 		CRY_CREATE_ENUM_FLAG_OPERATORS(EObjectFlags);
+
+		enum class ESoundVolumeFlag : CryAudio::EnumFlagsType
+		{
+			None = 0,
+			db_to_linear,
+			linear_to_db
+		};
+		CRY_CREATE_ENUM_FLAG_OPERATORS(ESoundVolumeFlag);
 
 		struct OdinDataSource;
 
@@ -44,23 +51,25 @@ namespace Cry
 			void MutePlayer();
 			bool IsPlayerMuted() const { return m_bMuted; }
 
-			void SetVolume(float fAmount);
+			void SetVolume(ESoundVolumeFlag flag, float fAmount);
 			float GetVolume() const { return m_fVolume; }
 
 			bool IsTalking() const { return m_bTalking; }
 
-		protected:
 			ma_sound* GetMASound() { return &m_sound; }
 
 			void CreateSoundInstance(ma_engine* engine, OdinDataSource* dataSource, const CryAudio::CTransformation& transform, uint16_t id);
+			void StartSound();
+			void StopSound();
 			void UpdateSoundPosition(const CryAudio::CTransformation& transform);
 			void UpdateSoundVelocity(float const fFrameTime);
 
 			void ToggleTalking() const { m_bTalking ? true : false; }
 
+			uint16_t GetSoundId() const { return m_id; }
 		protected:
+			uint16_t m_id;
 			ma_sound m_sound;
-			OdinDataSource* m_pDataSource = nullptr;
 
 			CryAudio::CTransformation m_transform = CryAudio::CTransformation::GetEmptyObject(); // since this is in a component propbably not needed
 			float m_fVolume = 1.f;

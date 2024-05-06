@@ -6,6 +6,7 @@
 #include <CryString/CryString.h>
 #include <map>
 
+#include "OdinComponents/CryOdinUserComponent.h"
 
 namespace Cry
 {
@@ -34,10 +35,9 @@ namespace Cry
 			virtual const char* GenerateRoomToken(const char* roomID, const char* user_id) const override;
 			virtual void SetOdinApmConfig(OdinApmConfig config) override;
 
-			virtual bool SetUpLocalUser(const char* user_name, EntityId entityId) override;
-
 			virtual bool JoinRoom(const char* room_name, const OdinApmConfig& config, CCryOdinUserComponent* odinComponent) override;
 
+			virtual ICryOdinAudioDevice* GetAudioDevices() override;
 
 			void OnUpdate(float const frameTime);
 		protected:
@@ -56,9 +56,9 @@ namespace Cry
 			OdinRoomHandle m_room;
 
 			std::unique_ptr<CCryOdinAudioSystem> m_pAudioSystem = nullptr;
-			std::unordered_map<uint64_t, std::unique_ptr<CCryOdinUserComponent>> m_userMap;
+			std::unordered_map<uint64_t, std::shared_ptr<CCryOdinUserComponent>> m_userMap;
 
-			CCryOdinUser* m_localUser;
+			CCryOdinUserComponent* m_localUser;
 
 			CListenerSet<IListener*> m_listeners = 1;
 

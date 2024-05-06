@@ -22,6 +22,8 @@ namespace Cry
 
 		/* Probably shoud seprate these two in different files ( headers ) but, I'm too lazy... so yea :D */
 		class CCryOdinUserComponent;
+		class CCryOdinComponentSound;
+		struct ICryOdinAudioDevice;
 
 		struct ICryOdin
 		{
@@ -30,10 +32,10 @@ namespace Cry
 			struct IListener
 			{
 				virtual void OnJoinedRoom(const char* room_name) = 0;
-				virtual void OnPeerJoined(CCryOdinUserComponent* user) = 0;
-				virtual void OnPeerMediaAdded(CCryOdinUserComponent* user) = 0;
-				virtual void OnPeerLeft(CCryOdinUserComponent* user) = 0;
-				virtual void OnPeerUserDataUpated(CCryOdinUserComponent* user) = 0;
+				virtual void OnPeerJoined(std::shared_ptr<CCryOdinUserComponent> user) = 0;
+				virtual void OnPeerMediaAdded(std::shared_ptr<CCryOdinComponentSound> user) = 0;
+				virtual void OnPeerLeft(std::shared_ptr<CCryOdinUserComponent> user) = 0;
+				virtual void OnPeerUserDataUpated(std::shared_ptr<CCryOdinUserComponent> user) = 0;
 			};
 
 			//! Used to register Odin listeners
@@ -67,11 +69,10 @@ namespace Cry
 			virtual void SetOdinApmConfig(OdinApmConfig config) = 0;
 
 
-
-			virtual bool SetUpLocalUser(const char* user_name, EntityId entityId) = 0;
-
 			virtual bool JoinRoom(const char* room_name, const OdinApmConfig& config, CCryOdinUserComponent* odinComponent) = 0;
 
+
+			virtual ICryOdinAudioDevice* GetAudioDevices() = 0;
 		};
 
 

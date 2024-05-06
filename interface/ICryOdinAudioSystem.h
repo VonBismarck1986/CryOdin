@@ -9,6 +9,7 @@ namespace Cry
 	{
 		struct ICryOdinUser;
 		class CCryOdinUserComponent;
+		class CCryOdinComponentSound;
 
 		struct ICryOdinAudioSystem
 		{
@@ -19,6 +20,7 @@ namespace Cry
 			virtual ma_engine* GetAudioEngine() = 0;
 
 			virtual void CreateAudioObject(const CCryOdinUserComponent& ref) = 0;
+			virtual CCryOdinComponentSound* CreateAudioComponent(const CCryOdinUserComponent& ref) = 0;
 			virtual void DestroyAudioObject(const CCryOdinUserComponent& ref) = 0;
 
 			virtual void OnUpdate(float const frameTime) = 0;

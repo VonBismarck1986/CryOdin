@@ -16,17 +16,11 @@ namespace Cry
 				, m_PeerID(peer_id)
 				, m_UserID(user_id)
 				, m_mediaHandles()
-				, m_bTalking(false)
-				, m_bOutputMuted(false)
-				, m_bInputMuted(false)
 				, m_room(0)
 			{}
 			explicit CCryOdinUser(uint64_t peer_id, uint64_t user_id)
 				: m_PeerID(peer_id)
 				, m_UserID(user_id)
-				, m_bTalking(false)
-				, m_bOutputMuted(false)
-				, m_bInputMuted(false)
 				, m_room(0)
 			{
 				m_mediaHandles[1] = 0;
@@ -48,17 +42,9 @@ namespace Cry
 
 			virtual string ToStringDebug() const override;
 
-			virtual bool IsTalking() override { return m_bTalking; }
-			virtual void Talking(bool yesNo) override { m_bTalking = yesNo; }
-			virtual bool IsMicMuted() override { return m_bInputMuted; }
-			virtual bool IsSpeakersMuted() override { return m_bOutputMuted; }
-
-
 			void SetPeerID(uint64_t id) { m_PeerID = id; }
 			void SetUserID(uint64_t id) { m_UserID = id; }
 
-			void SetMicMuted(bool yesNo) { m_bInputMuted = yesNo; }
-			void SetSpeakersMuted(bool yesNo) { m_bOutputMuted = yesNo; }
 			void SetRoomName(const char* name) { m_RoomName = name; }
 			void SetOnlineStatus(string online) { m_OnlineStatus = online; }
 
@@ -74,10 +60,6 @@ namespace Cry
 
 			CryFixedStringT<128> m_RoomName;
 			string m_debugString;
-
-			mutable bool m_bTalking;
-			mutable bool m_bOutputMuted;
-			mutable bool m_bInputMuted;
 			mutable string m_OnlineStatus;
 		};
 	}

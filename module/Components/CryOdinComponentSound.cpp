@@ -4,6 +4,8 @@
 #include <Core/CryOdinAudioSystem.h>
 #include <CryPhysics/IPhysics.h>
 
+#include <Core/CryOdinAudioDataSource.h>
+
 namespace Cry
 {
 	namespace Odin
@@ -62,18 +64,38 @@ namespace Cry
 			ma_sound_set_volume(&m_sound, 0.0f);
 		}
 
-		void CCryOdinComponentSound::SetVolume(float fAmount)
+		void CCryOdinComponentSound::SetVolume(ESoundVolumeFlag flag, float fAmount)
 		{
-			ma_sound_set_volume(&m_sound, ma_volume_linear_to_db(fAmount));
-			m_fVolume = ma_sound_get_volume(&m_sound);
+			switch (flag)
+			{
+			case ESoundVolumeFlag::db_to_linear:
+			{
+				ma_sound_set_volume(&m_sound, ma_volume_db_to_linear(fAmount));
+				m_fVolume = ma_sound_get_volume(&m_sound);
+			}
+			break;
+			case ESoundVolumeFlag::linear_to_db:
+			{
+				ma_sound_set_volume(&m_sound, ma_volume_linear_to_db(fAmount));
+				m_fVolume = ma_sound_get_volume(&m_sound);
+			}
+			break;
+			case ESoundVolumeFlag::None:
+			{
+				ma_sound_set_volume(&m_sound, fAmount);
+				m_fVolume = ma_sound_get_volume(&m_sound);
+			}
+			break;
+			default:
+				break;
+			}
 		}
 
 		void CCryOdinComponentSound::CreateSoundInstance(ma_engine* engine, OdinDataSource* dataSource, const CryAudio::CTransformation& transform, uint16_t id)
 		{
+			m_id = id;
 			m_transform = transform;
 			m_position = transform.GetPosition();
-
-			m_pDataSource = dataSource;
 
 			ma_sound_init_from_data_source(engine, dataSource, 0, NULL, &m_sound);
 			ma_sound_set_position(&m_sound, m_transform.GetPosition().x, m_transform.GetPosition().y, m_transform.GetPosition().z);
@@ -82,6 +104,16 @@ namespace Cry
 			ma_sound_set_volume(&m_sound, ma_volume_db_to_linear(10.f));
 
 			m_bGameStarted = true;
+		}
+
+		void CCryOdinComponentSound::StartSound()
+		{
+			ma_sound_start(&m_sound);
+		}
+
+		void CCryOdinComponentSound::StopSound()
+		{
+			ma_sound_stop(&m_sound);
 		}
 
 		void CCryOdinComponentSound::UpdateSoundPosition(const CryAudio::CTransformation& transform)

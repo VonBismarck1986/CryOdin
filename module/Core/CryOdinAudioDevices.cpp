@@ -94,12 +94,12 @@ namespace Cry
 
 		int CCryOdinAudioDevice::GetNumberOfInputDevices() const
 		{
-			return 0;
+			return m_config.input_devices_count;
 		}
 
 		int CCryOdinAudioDevice::GetNumberOfOutputDevices() const
 		{
-			return 0;
+			return m_config.output_devices_count;
 		}
 		
 		void CCryOdinAudioDevice::ChangeInputDevice(int index)
