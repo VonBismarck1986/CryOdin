@@ -32,6 +32,7 @@ namespace Cry
 				desc.AddMember(&CCryOdinComponentListener::m_bActive, 'actv', "Active", "Active", "Moves the voice listener to this entity", true);
 				desc.AddMember(&CCryOdinComponentListener::m_bUseViewCamera, 'cam', "UseViewCamera", "Use View Camera", "Listens from the camera instead of this entity, but still ignores it in occlusion ray casts", false);
 				desc.AddMember(&CCryOdinComponentListener::m_bLocalPlayerOnly, 'locl', "LocalPlayerOnly", "Local Player Only", "Only active on the entity of the local player, which your game has to spawn as one. Turn off for an entity placed in the level", true);
+				desc.AddMember(&CCryOdinComponentListener::m_fEarHeight, 'ehgt', "EarHeight", "Ear Height", "Meters above the entity's origin the listener's ears are, so voices at mouth height sound level. Not used with Use View Camera", 1.6f);
 			}
 
 			virtual void SetActive(bool bActive) { m_bActive = bActive; }
@@ -40,10 +41,15 @@ namespace Cry
 			virtual void SetUseViewCamera(bool bUseViewCamera) { m_bUseViewCamera = bUseViewCamera; }
 			virtual bool IsUsingViewCamera() const { return m_bUseViewCamera; }
 
+			//! The player's HRTF setting, for all voices. See ICryOdinAudioSystem::SetHrtfEnabled.
+			virtual void SetHrtfEnabled(bool bEnabled);
+			virtual bool IsHrtfEnabled() const;
+
 		protected:
 			bool m_bActive = true;
 			bool m_bUseViewCamera = false;
 			bool m_bLocalPlayerOnly = true;
+			float m_fEarHeight = 1.6f;
 		};
 	}
 }

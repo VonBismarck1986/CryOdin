@@ -5,6 +5,8 @@
 
 #include "CryOdinAudioDataSource.h"
 #include "CryOdinAudioEffects.h"
+#include "CryOdinAudioHrtf.h"
+#include "CryOdinAudioReverb.h"
 #include "Utils/OdinHelpers.h"
 #include "Utils/OdinRealtime.h"
 
@@ -24,6 +26,15 @@ namespace Cry
 		{
 			ma_node_base base;
 			CCryOdinSound* pSound = nullptr;
+		};
+
+		// The listener as each voice needs it, with a right vector that matches miniaudio's panning.
+		struct SCryOdinListenerFrame
+		{
+			Vec3 position = ZERO;
+			Vec3 right = Vec3(1.f, 0.f, 0.f);
+			Vec3 forward = Vec3(0.f, 1.f, 0.f);
+			Vec3 up = Vec3(0.f, 0.f, 1.f);
 		};
 
 		// Owns the decoder for as long as a voice or the network thread needs it.
@@ -84,17 +95,35 @@ namespace Cry
 
 			bool IsIgnoringRoomDefaults() const { return m_bIgnoreRoomDefaults; }
 
+			// Main thread, each update: distance, speaker direction, the direction for HRTF, and how much
+			// of the voice goes to each reverb slot.
+			void UpdateSpatial(const SCryOdinListenerFrame& listener, bool bHrtfWanted, const float (&reverbSends)[kCryOdinReverbSlots]);
+			// A 3D voice whose Reverb Send isn't 0.
+			bool WantsReverb() const;
+
 			// Used by the occlusion system on the main thread
 			bool WantsOcclusionRays() const;
 			void SetOcclusionFromRays(float fOcclusion);
 			EntityId GetOcclusionIgnoreEntity() const { return m_occlusionIgnoreEntity; }
 
 			// Audio thread. The first gets the mono voice before the spatializer, the second the stereo result.
+			// ppOut[0] is the voice, ppOut[1 + slot] the send to each reverb slot.
 			void ProcessSource(float* pFrames, uint32 frameCount, bool bSilent);
-			void ProcessAudio(const float* pIn, float* pOut, uint32 frameCount);
+			void ProcessAudio(const float* pIn, float** ppOut, uint32 frameCount);
 
 		private:
 			using TEffectList = std::vector<ICryOdinAudioEffectPtr>;
+
+			// What UpdateSpatial found, for the audio thread.
+			struct SSpatialState
+			{
+				bool bValid = false;              // A 3D voice stays silent until its first update, which knows the distance.
+				float fDistanceGain = 1.f;
+				float fBehind = 0.f;              // 0 facing the listener, 1 fully behind the speaker.
+				Vec3 direction = Vec3(0.f, 1.f, 0.f); // Listener space: x right, y front, z up.
+				bool bHrtf = false;
+				float reverbSends[kCryOdinReverbSlots] = {};
+			};
 
 			void ApplySpatialSettings();
 			void PublishSettings();
@@ -116,12 +145,15 @@ namespace Cry
 			// Main thread state
 			SCryOdinVoiceSettings m_settings;
 			Vec3 m_position = ZERO;
+			Vec3 m_forward = ZERO;
+			bool m_bHrtfApplied = false; // miniaudio's panning is off while HRTF places the voice.
 			EntityId m_occlusionIgnoreEntity = INVALID_ENTITYID;
 			bool m_bHasOcclusionOverride = false;
 			bool m_bIgnoreRoomDefaults = false;
 
 			// Shared with the audio thread
 			TCryOdinRtMailbox<SCryOdinVoiceSettings> m_settingsMailbox;
+			TCryOdinRtMailbox<SSpatialState> m_spatialMailbox;
 			CCryOdinRtSection m_rtSection;
 			std::shared_ptr<const TEffectList> m_pEffects;
 			std::atomic<float> m_fOcclusionTarget{ 0.f };
@@ -133,8 +165,16 @@ namespace Cry
 			uint32 m_settingsVersion = 0;
 			CCryOdinRadioEffect m_radio;
 			CCryOdinOcclusionFilter m_occlusionFilter;
+			CCryOdinOcclusionFilter m_behindFilter;
+			CCryOdinHrtf m_hrtf;
+			SSpatialState m_rtSpatial;
+			uint32 m_spatialVersion = 0;
+			bool m_bRtHrtf = false;
 			float m_fCurrentGain = 0.f;
 			float m_fCurrentOcclusion = 0.f;
+			float m_fCurrentBehind = 0.f;
+			float m_fCurrentDistanceGain = 0.f;
+			float m_fCurrentSends[kCryOdinReverbSlots] = {};
 		};
 	}
 }

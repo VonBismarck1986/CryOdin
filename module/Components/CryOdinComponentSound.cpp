@@ -176,8 +176,9 @@ namespace Cry
 				return;
 			}
 
+			// Raised to the mouth, as a player's origin is normally at the feet. HRTF hears the difference.
 			const Matrix34& matrix = m_pEntity->GetWorldTM();
-			pSound->SetTransform(matrix.GetTranslation(), matrix.GetColumn1());
+			pSound->SetTransform(matrix.GetTranslation() + Vec3(0.f, 0.f, m_fVoiceHeight), matrix.GetColumn1());
 		}
 
 		void CCryOdinComponentSound::SendTalkingSignal(bool bTalking)

@@ -39,6 +39,21 @@ namespace Cry
 			//! @param ignoreEntity Ignored by occlusion ray casts, normally the player.
 			virtual void SetListenerTransform(const Vec3& position, const Vec3& forward, const Vec3& up, EntityId ignoreEntity = INVALID_ENTITYID) = 0;
 			virtual Vec3 GetListenerPosition() const = 0;
+
+			//! HRTF places 3D voices around the head on headphones, including behind and above. Off uses
+			//! stereo panning, which suits speakers. A player setting, off by default. Voices with
+			//! SCryOdinVoiceSettings::bHrtf off always pan.
+			virtual void SetHrtfEnabled(bool bEnabled) = 0;
+			virtual bool IsHrtfEnabled() const = 0;
+
+			//! Reverb on 3D voices, from the audio environments where each speaker stands. On by default.
+			virtual void SetReverbEnabled(bool bEnabled) = 0;
+			virtual bool IsReverbEnabled() const = 0;
+
+			//! The reverb for a CRYENGINE audio environment, by its name in the Audio Controls Editor. Used when
+			//! the entity providing the environment has no CCryOdinReverbComponent. Kept until removed.
+			virtual void SetEnvironmentReverb(const char* szEnvironmentName, const SCryOdinReverbSettings& settings) = 0;
+			virtual void RemoveEnvironmentReverb(const char* szEnvironmentName) = 0;
 		};
 	}
 }

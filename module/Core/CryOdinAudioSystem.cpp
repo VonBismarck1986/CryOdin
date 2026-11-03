@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "CryOdinAudioSystem.h"
+#include "CryOdinAudioSound.h"
 #include "Utils/MiniAudioHelpers.h"
 
 #include <cmath>
@@ -14,6 +15,8 @@ namespace Cry
 			constexpr uint32 kMaxDatagramSize = 2048;
 			constexpr float kLevelFall = 0.8f;
 		}
+
+		bool CCryOdinAudioSystem::s_bHrtfEnabled = false;
 
 		CCryOdinAudioSystem::CCryOdinAudioSystem()
 		{
@@ -63,6 +66,9 @@ namespace Cry
 			ma_engine_listener_set_world_up(&m_engine, 0, 0.f, 0.f, 1.f);
 			ma_engine_listener_set_direction(&m_engine, 0, 0.f, 1.f, 0.f);
 
+			// Voices without reverb still play if this fails.
+			m_reverb.Init(&m_engine, &m_allocation);
+
 			m_pAudioDevice = stl::make_unique<CCryOdinAudioDevice>(*this);
 			if (!m_pAudioDevice->Init(&m_log))
 			{
@@ -82,6 +88,8 @@ namespace Cry
 
 			if (m_bEngineReady)
 			{
+				// Voices are gone by now, they were attached to these.
+				m_reverb.Uninit(&m_allocation);
 				ma_engine_uninit(&m_engine);
 				m_bEngineReady = false;
 			}
@@ -111,6 +119,38 @@ namespace Cry
 			if (m_deviceUsers > 0)
 			{
 				m_occlusion.Update(m_listener.position, m_listenerIgnoreEntity, occlusionRaysPerFrame, fOcclusionPerHit);
+			}
+
+			UpdateSounds(frameTime);
+		}
+
+		void CCryOdinAudioSystem::RegisterSound(CCryOdinSound* pSound)
+		{
+			stl::push_back_unique(m_sounds, pSound);
+		}
+
+		void CCryOdinAudioSystem::UnregisterSound(CCryOdinSound* pSound)
+		{
+			stl::find_and_erase(m_sounds, pSound);
+			m_reverb.RemoveSound(pSound);
+		}
+
+		void CCryOdinAudioSystem::UpdateSounds(float frameTime)
+		{
+			m_reverb.Update(frameTime, m_sounds);
+
+			// The same right vector miniaudio pans with: forward cross up.
+			SCryOdinListenerFrame frame;
+			frame.position = m_listener.position;
+			frame.forward = m_listener.forward.GetNormalizedSafe(Vec3(0.f, 1.f, 0.f));
+			frame.right = frame.forward.Cross(m_listener.up).GetNormalizedSafe(Vec3(1.f, 0.f, 0.f));
+			frame.up = frame.right.Cross(frame.forward).GetNormalizedSafe(Vec3(0.f, 0.f, 1.f));
+
+			for (CCryOdinSound* pSound : m_sounds)
+			{
+				float sends[kCryOdinReverbSlots];
+				m_reverb.GetSends(pSound, sends);
+				pSound->UpdateSpatial(frame, s_bHrtfEnabled, sends);
 			}
 		}
 
@@ -323,7 +363,14 @@ namespace Cry
 				ma_engine_listener_set_world_up(&m_engine, 0, listener.up.x, listener.up.y, listener.up.z);
 			}
 
-			ma_engine_read_pcm_frames(&m_engine, pOutput, frameCount, nullptr);
+			// No more than a node caches per read. A voice node has several outputs (the voice and its reverb
+			// sends), and miniaudio would process it again for a longer read, eating the decoder's audio.
+			const uint32 chunkFrames = std::max<uint32>(m_engine.nodeGraph.nodeCacheCapInFrames, 1);
+			for (uint32 offset = 0; offset < frameCount; offset += chunkFrames)
+			{
+				const uint32 frames = std::min(chunkFrames, frameCount - offset);
+				ma_engine_read_pcm_frames(&m_engine, pOutput + offset * kOdinOutputChannels, frames, nullptr);
+			}
 
 			const uint32 sampleCount = frameCount * kOdinOutputChannels;
 

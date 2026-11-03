@@ -48,7 +48,12 @@ namespace Cry
 				desc.AddMember(&CCryOdinComponentSound::m_userId, 'user', "UserId", "User Id", "The id the user joined with", "");
 				desc.AddMember(&CCryOdinComponentSound::m_roomId, 'room', "RoomId", "Room Id", "Only match this room, leave empty for any room", "");
 				desc.AddMember(&CCryOdinComponentSound::m_settings, 'voic', "Voice", "Voice", "How the voice is played", SCryOdinVoiceSettings());
+				desc.AddMember(&CCryOdinComponentSound::m_fVoiceHeight, 'vhgt', "VoiceHeight", "Voice Height", "Meters above the entity's origin the voice comes from, about mouth height for a player. 0 for an entity already at the mouth", 1.6f);
 			}
+
+			//! Meters above the entity's origin the voice comes from.
+			virtual void SetVoiceHeight(float fHeight) { m_fVoiceHeight = fHeight; }
+			virtual float GetVoiceHeight() const { return m_fVoiceHeight; }
 
 			//! Plays this user's voice from the entity. Finds the user now or when they join.
 			//! @param szRoomId Limits the match to one room, empty matches any room. Null keeps the Room Id property.
@@ -103,6 +108,7 @@ namespace Cry
 			Schematyc::CSharedString m_userId;
 			Schematyc::CSharedString m_roomId;
 			SCryOdinVoiceSettings m_settings;
+			float m_fVoiceHeight = 1.6f;
 
 			ICryOdinUser* m_pUser = nullptr;
 			bool m_bWantsUser = true;

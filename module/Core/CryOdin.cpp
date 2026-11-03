@@ -166,6 +166,57 @@ namespace Cry
 				}
 			}
 
+			void CmdHrtf(IConsoleCmdArgs* pArgs)
+			{
+				// A player setting, kept even before Odin starts.
+				const bool bEnabled = pArgs->GetArgCount() > 1 ? atoi(pArgs->GetArg(1)) != 0 : !CCryOdinAudioSystem::GetHrtfSetting();
+				CCryOdinAudioSystem::SetHrtfSetting(bEnabled);
+				ODIN_LOG("HRTF %s", bEnabled ? "on, for headphones" : "off, stereo panning");
+			}
+
+			void CmdReverb(IConsoleCmdArgs* pArgs)
+			{
+				const bool bEnabled = pArgs->GetArgCount() > 1 ? atoi(pArgs->GetArg(1)) != 0 : !CCryOdinReverbManager::IsEnabled();
+				CCryOdinReverbManager::SetEnabled(bEnabled);
+				ODIN_LOG("Voice reverb %s", bEnabled ? "on" : "off");
+			}
+
+			void CmdReverbMap(IConsoleCmdArgs* pArgs)
+			{
+				if (pArgs->GetArgCount() < 3)
+				{
+					ODIN_LOG("Usage: odin_reverb_map <environment> <room|hall|cave|bathroom|corridor|outdoors|underwater|off>");
+					return;
+				}
+
+				struct SPresetName { const char* szName; ECryOdinReverbPreset preset; };
+				static const SPresetName s_presets[] =
+				{
+					{ "room", ECryOdinReverbPreset::Room }, { "hall", ECryOdinReverbPreset::Hall }, { "cave", ECryOdinReverbPreset::Cave },
+					{ "bathroom", ECryOdinReverbPreset::Bathroom }, { "corridor", ECryOdinReverbPreset::Corridor },
+					{ "outdoors", ECryOdinReverbPreset::Outdoors }, { "underwater", ECryOdinReverbPreset::Underwater },
+				};
+
+				const char* szEnvironment = pArgs->GetArg(1);
+				const char* szPreset = pArgs->GetArg(2);
+				if (stricmp(szPreset, "off") == 0)
+				{
+					CCryOdinReverbManager::RemoveEnvironmentReverb(szEnvironment);
+					ODIN_LOG("Environment '%s' gives voices no reverb", szEnvironment);
+					return;
+				}
+				for (const SPresetName& entry : s_presets)
+				{
+					if (stricmp(szPreset, entry.szName) == 0)
+					{
+						CCryOdinReverbManager::SetEnvironmentReverb(szEnvironment, GetCryOdinReverbPreset(entry.preset));
+						ODIN_LOG("Environment '%s' gives voices the %s reverb", szEnvironment, entry.szName);
+						return;
+					}
+				}
+				ODIN_LOG("Unknown reverb preset '%s'", szPreset);
+			}
+
 			void CmdLoopback(IConsoleCmdArgs* pArgs)
 			{
 				CCryOdin* pOdin = CCryOdin::Get();
@@ -380,6 +431,9 @@ namespace Cry
 			REGISTER_COMMAND("odin_set_output", &CmdSetOutput, VF_NULL, "Selects the speakers: odin_set_output <index>, -1 is the system default");
 			REGISTER_COMMAND("odin_mute", &CmdMute, VF_NULL, "Mutes the microphone: odin_mute [0|1]");
 			REGISTER_COMMAND("odin_loopback", &CmdLoopback, VF_NULL, "Plays your own encoded voice back to you: odin_loopback [0|1]");
+			REGISTER_COMMAND("odin_hrtf", &CmdHrtf, VF_NULL, "Places 3D voices around your head for headphones: odin_hrtf [0|1]");
+			REGISTER_COMMAND("odin_reverb", &CmdReverb, VF_NULL, "Turns the reverb of voices in audio environments on or off: odin_reverb [0|1]");
+			REGISTER_COMMAND("odin_reverb_map", &CmdReverbMap, VF_NULL, "Gives a CRYENGINE audio environment a voice reverb: odin_reverb_map <environment> <preset|off>");
 			REGISTER_COMMAND("odin_radio", &CmdRadio, VF_NULL, "Sets the radio effect of all voices: odin_radio <off|clean|handheld|military|aircraft|damaged>");
 			REGISTER_COMMAND("odin_bitrate", &CmdBitrate, VF_NULL, "Sets the bitrate of your voice: odin_bitrate <low|standard|high|veryhigh|kbps> [room]");
 #if !defined(_RELEASE)
@@ -412,6 +466,9 @@ namespace Cry
 			gEnv->pConsole->RemoveCommand("odin_set_output");
 			gEnv->pConsole->RemoveCommand("odin_mute");
 			gEnv->pConsole->RemoveCommand("odin_loopback");
+			gEnv->pConsole->RemoveCommand("odin_hrtf");
+			gEnv->pConsole->RemoveCommand("odin_reverb");
+			gEnv->pConsole->RemoveCommand("odin_reverb_map");
 			gEnv->pConsole->RemoveCommand("odin_radio");
 			gEnv->pConsole->RemoveCommand("odin_bitrate");
 #if !defined(_RELEASE)

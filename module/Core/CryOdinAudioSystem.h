@@ -5,6 +5,7 @@
 
 #include "CryOdinAudioDevices.h"
 #include "CryOdinAudioOcclusion.h"
+#include "CryOdinAudioReverb.h"
 #include "Utils/OdinHelpers.h"
 #include "Utils/OdinRealtime.h"
 
@@ -16,6 +17,8 @@ namespace Cry
 {
 	namespace Odin
 	{
+		class CCryOdinSound;
+
 		// A room's encoder as seen by the audio threads. The room keeps the pointers valid
 		// until after UnregisterCaptureTarget has returned.
 		struct SCryOdinCaptureTarget
@@ -54,6 +57,16 @@ namespace Cry
 			// Call after anything a capture target points to was replaced, before the old one is freed.
 			void WaitForAudioThreads();
 
+			// The HRTF player setting, also while no audio system exists. Main thread.
+			static void SetHrtfSetting(bool bEnabled) { s_bHrtfEnabled = bEnabled; }
+			static bool GetHrtfSetting() { return s_bHrtfEnabled; }
+
+			// Voices register themselves, so each update can place them. Main thread.
+			void RegisterSound(CCryOdinSound* pSound);
+			void UnregisterSound(CCryOdinSound* pSound);
+			// Where a voice attaches its send to a reverb slot, null if the slot couldn't be made.
+			ma_node* GetReverbSlotNode(int slot) { return m_reverb.GetSlotNode(slot); }
+
 			const ma_allocation_callbacks& GetAllocationCallbacks() const { return m_allocation; }
 			CCryOdinOcclusion& GetOcclusion() { return m_occlusion; }
 			CCryOdinAudioDevice* GetAudioDevices() { return m_pAudioDevice.get(); }
@@ -80,6 +93,14 @@ namespace Cry
 
 			virtual void SetListenerTransform(const Vec3& position, const Vec3& forward, const Vec3& up, EntityId ignoreEntity) override;
 			virtual Vec3 GetListenerPosition() const override { return m_listener.position; }
+
+			virtual void SetHrtfEnabled(bool bEnabled) override { s_bHrtfEnabled = bEnabled; }
+			virtual bool IsHrtfEnabled() const override { return s_bHrtfEnabled; }
+
+			virtual void SetReverbEnabled(bool bEnabled) override { CCryOdinReverbManager::SetEnabled(bEnabled); }
+			virtual bool IsReverbEnabled() const override { return CCryOdinReverbManager::IsEnabled(); }
+			virtual void SetEnvironmentReverb(const char* szEnvironmentName, const SCryOdinReverbSettings& settings) override { CCryOdinReverbManager::SetEnvironmentReverb(szEnvironmentName, settings); }
+			virtual void RemoveEnvironmentReverb(const char* szEnvironmentName) override { CCryOdinReverbManager::RemoveEnvironmentReverb(szEnvironmentName); }
 			// ~ICryOdinAudioSystem
 
 		private:
@@ -97,6 +118,7 @@ namespace Cry
 			void PublishCaptureTargets(std::shared_ptr<const TCaptureTargets> pTargets);
 			void SendCaptureToTarget(SCryOdinCaptureTarget& target, const float* pSamples, uint32 frameCount, bool bMuted);
 			void UpdateListenerFromCamera();
+			void UpdateSounds(float frameTime);
 
 			ma_allocation_callbacks m_allocation;
 			ma_log m_log;
@@ -106,6 +128,7 @@ namespace Cry
 
 			std::unique_ptr<CCryOdinAudioDevice> m_pAudioDevice;
 			CCryOdinOcclusion m_occlusion;
+			CCryOdinReverbManager m_reverb;
 			int m_deviceUsers = 0;
 			float m_fMasterVolume = 1.f;
 
@@ -113,6 +136,9 @@ namespace Cry
 			SListenerState m_listener;
 			EntityId m_listenerIgnoreEntity = INVALID_ENTITYID;
 			bool m_bListenerSetThisFrame = false;
+			// A player setting, so it outlives a shutdown of the audio system. Main thread.
+			static bool s_bHrtfEnabled;
+			std::vector<CCryOdinSound*> m_sounds;
 
 			// Shared with the audio threads
 			std::shared_ptr<const TCaptureTargets> m_pCaptureTargets;

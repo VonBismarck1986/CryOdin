@@ -30,6 +30,18 @@ namespace Cry
 						pFunction->BindInput(1, 'cam', "Use View Camera");
 						componentScope.Register(pFunction);
 					}
+					{
+						auto pFunction = SCHEMATYC_MAKE_ENV_FUNCTION(&CCryOdinComponentListener::SetHrtfEnabled, "{7F274418-122E-4228-97A4-740EC60A9ED3}"_cry_guid, "SetHrtfEnabled");
+						pFunction->SetDescription("On places 3D voices around the head, for headphones. Off uses stereo panning, for speakers. For all voices");
+						pFunction->BindInput(1, 'hrtf', "Enabled");
+						componentScope.Register(pFunction);
+					}
+					{
+						auto pFunction = SCHEMATYC_MAKE_ENV_FUNCTION(&CCryOdinComponentListener::IsHrtfEnabled, "{6A864894-A573-4D73-A482-D19C9DF927A8}"_cry_guid, "IsHrtfEnabled");
+						pFunction->SetDescription("True while voices use HRTF");
+						pFunction->BindOutput(0, 'hrtf', "Enabled");
+						componentScope.Register(pFunction);
+					}
 				}
 			}
 
@@ -38,6 +50,17 @@ namespace Cry
 
 		void CCryOdinComponentListener::Initialize()
 		{
+		}
+
+		void CCryOdinComponentListener::SetHrtfEnabled(bool bEnabled)
+		{
+			// Kept until voices play, without starting Odin for it.
+			CCryOdinAudioSystem::SetHrtfSetting(bEnabled);
+		}
+
+		bool CCryOdinComponentListener::IsHrtfEnabled() const
+		{
+			return CCryOdinAudioSystem::GetHrtfSetting();
 		}
 
 		Cry::Entity::EventFlags CCryOdinComponentListener::GetEventMask() const
@@ -78,7 +101,7 @@ namespace Cry
 			else
 			{
 				const Matrix34& matrix = m_pEntity->GetWorldTM();
-				position = matrix.GetTranslation();
+				position = matrix.GetTranslation() + Vec3(0.f, 0.f, m_fEarHeight);
 				forward = matrix.GetColumn1();
 				up = matrix.GetColumn2();
 			}

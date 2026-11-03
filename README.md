@@ -1,7 +1,8 @@
 # CryOdin
-This repository is first attempt at linking together Odin and CRYENGINE. Please note until other wise written 
-using this Plugin for you're game wouldn't be recommend unless you know what you're doing. I will be polishing this 
-Plugin to be able to used without issues.
+This repository is first attempt at linking together **4Player Odin** and **CRYENGINE**. After major improvements and new features I am proud to
+share **CryOdin** with you. This current version of **CryOdin** uses the current version of **4Players** Odin API with major improvements for 
+audio handling, effects, and more. Please note **CryOdin** still uses miniaudio this means you do not need a custom version of **Cryengine V** 
+this plugin will work with the **Cryengine V 5.7** by default just drop it in and go.
 
 # Odin 
  Odin is made by `4Players` check out their website here [4Players GmbH](https://www.4players.io/) for more information on Odin and pricing.
@@ -13,7 +14,7 @@ Plugin to be able to used without issues.
 
 # How to use plugin 
 
-Right now `CryOdin` doesn't use CryAudio System ( Cryengine audio system ). Instead it uses [Miniaudio](https://miniaud.io/index.html). This isn't too much of issue but, it does mean this plugin will take a while to be up to par with CryAudio. Right now the API of `CryOdin` handles most use cases of this. So it shouldn't be problem to plug CryOdin and get striaght into it.
+Right now `CryOdin` doesn't use CryAudio System ( Cryengine audio system ). Instead it uses [Miniaudio](https://miniaud.io/index.html).
 
 If you want to build `CryOdin` you'll need to have Odin SDK from [OdinSDK](https://github.com/4Players/odin-sdk) and create a folder in `Cryengine SDKs` directory called  `Odin`. Once done you'll need to add `CryOdin` plugin into the `CryPlugins folders`. From there you'll add this line of code into the CMakeList.txt that is located in the `CryPlugins folder`.
 
@@ -94,6 +95,7 @@ Add these to your entities in the Sandbox or from code. They're in the `Odin` ca
 | `OdinComponentSound` | Each remote player | Plays that player's voice from their entity, with its own volume, 3D settings, occlusion and radio |
 | `OdinComponentListener` | The local player | Voices are heard from this entity. Without it, they're heard from the view camera |
 | `OdinNetworkComponent` | Every player entity, on the server and the clients | Gets tokens from the dedicated server, and tells every client which voice belongs to the entity. See [Dedicated server](#dedicated-server) |
+| `OdinReverbComponent` | An audio area's entity, or anywhere with its own box | How voices sound in that space. See [Reverb](#reverb) |
 
 For a shipped game, turn on Require Token on `OdinUserComponent`. Then tokens come only from the server, through `OdinNetworkComponent`, or from `SetRoomToken` when your own server replies. With Auto Join on, either one joins the room.
 
@@ -291,6 +293,62 @@ Players can change it at any time, for example from an options menu: `SetVoiceQu
 
 The same rebuild makes **Send Position work when turned on after joining**: the room gets a new encoder that sends your position while you're silent.
 
+## 3D voices
+A 3D voice (Positioning 3D on `OdinComponentSound`, or in `SCryOdinVoiceSettings`) comes from its entity. Voices don't go through CRYENGINE's audio middleware, as CryAudio can't take live voice audio without engine changes. CryOdin mixes them itself, and follows the engine's audio areas for reverb.
+
+| Setting | What it does |
+|---|---|
+| Attenuation, Min Distance, Max Distance, Rolloff | How the volume falls with distance. Inverse and Exponential keep a little sound beyond Max Distance, Linear reaches silence there |
+| Directional Panning | How far to one side a voice beside you is panned, with HRTF off |
+| Speaker Direction | On by default. A speaker facing away is quieter (Behind Volume) and duller (Behind Low Pass). The front is Inner Angle wide, and from Outer Angle on the Behind values apply fully |
+| Use HRTF | Allows HRTF for this voice when the player turns it on |
+| Reverb Send | How much of the voice reaches the reverb of the space the speaker is in |
+| Occlusion | Geometry between you and the voice muffles it |
+
+The speaker's direction is the entity's forward. To use the head or aim direction instead, call `ICryOdinSound::SetTransform` with your own forward vector.
+
+**Heights:**
+- The voice comes from Voice Height above the entity's origin on `OdinComponentSound` (1.6 m), as a player's origin is usually at the feet.
+- The listener hears from Ear Height above its entity on `OdinComponentListener` (1.6 m). It uses the camera's own position instead with Use View Camera.
+- Set either to 0 for an entity that is already at the mouth or ears.
+- Occlusion rays also go to the raised position.
+
+### HRTF
+HRTF places voices around your head on headphones: in front, behind and above, not only left and right. It's a player setting, off by default, because speakers sound better with plain panning:
+- the console: `odin_hrtf 1`;
+- Schematyc: `SetHrtfEnabled` on `OdinComponentListener`;
+- C++: `ICryOdinAudioSystem::SetHrtfEnabled`.
+
+The setting is kept for the whole session, even while no room is joined.
+
+It's a model of a head and ears (Brown and Duda's structural model) rather than measured data:
+- **Left and right:** each ear hears the voice slightly later and duller when it's on the far side.
+- **Height:** short echoes from the outer ear.
+- **Front and back:** a gentle high cut for voices behind you.
+
+Left and right are strong, while front/back and height are subtler than with measured HRTFs. It uses no data files and little CPU.
+
+## Reverb
+Voices take on the reverb of the space the speaker stands in, like CRYENGINE does for its own sounds. Three spaces can ring at once.
+
+**With CRYENGINE audio environments.** The entity of an audio area that has an Environment component can also get an `OdinReverbComponent`, with Shape left on Engine Audio Environment. Voices in that area then get the component's reverb, faded in over the area's fade distance. CryOdin can't read the middleware's own reverb, so you pick a preset that matches it: Room, Hall, Cave, Bathroom, Corridor, Outdoors or Underwater, or Custom values.
+
+Environments without the component can be given a reverb by name, as named in the Audio Controls Editor:
+```c++
+pOdin->GetAudioSystem()->SetEnvironmentReverb("cave", Cry::Odin::GetCryOdinReverbPreset(Cry::Odin::ECryOdinReverbPreset::Cave));
+```
+Or try it from the console with `odin_reverb_map cave cave`. Environments with neither give voices no reverb.
+
+**Without audio environments** (for example with SDL Mixer, or for a quick test), set the component's Shape to Box. The reverb then covers the Box Size around the entity, and fades out over Fade Distance outside it.
+
+**Player setting:** `odin_reverb 0` or `ICryOdinAudioSystem::SetReverbEnabled(false)` turns all of it off.
+
+**How it sounds:**
+- The reverb fades more slowly with distance than the voice does, so far voices sound farther away.
+- It's still heard when a wall muffles the voice, as you'd hear a room through a door.
+- 2D voices, such as radio rooms, get none.
+- The presets are starting points, so tune Wet Level by ear.
+
 ## Your own audio effects
 Implement `ICryOdinAudioEffect` and add it to a voice with `AddEffect`, or to the microphone with `ICryOdinRoom::AddCaptureEffect`. `Process` runs on an audio thread, so don't allocate, block or call the engine from it.
 
@@ -301,7 +359,9 @@ Implement `ICryOdinAudioEffect` and add it to a voice with `AddEffect`, or to th
 | Bitrate and codec | Voice Quality on the component, or `SCryOdinEncoderSettings` and `ICryOdinRoom::SetEncoderSettings`, see [Voice quality](#voice-quality) |
 | Push to talk | Transmit Mode and Push To Talk Key on the component, see [Push to talk](#push-to-talk). Or `ICryOdinRoom::SetTransmitEnabled` |
 | Mute, gain, master volume, levels | `ICryOdinAudioSystem` |
-| One voice's volume, 3D, occlusion | `SCryOdinVoiceSettings` and `ICryOdinSound`, or `OdinComponentSound` |
+| One voice's volume, 3D, occlusion, speaker direction | `SCryOdinVoiceSettings` and `ICryOdinSound`, or `OdinComponentSound`, see [3D voices](#3d-voices) |
+| HRTF for headphones | `ICryOdinAudioSystem::SetHrtfEnabled`, see [HRTF](#hrtf) |
+| Reverb | `OdinReverbComponent`, `ICryOdinAudioSystem::SetEnvironmentReverb` and `SetReverbEnabled`, see [Reverb](#reverb) |
 | Microphone and speakers | `ICryOdinAudioDevice`. They only open while you're in a room |
 | Skipping far away voices on the server | Send Position on the component, or `ICryOdinRoom::SetPosition` and `SetChannelMasks` |
 | End to end encryption | `SCryOdinRoomParams::szPassword` |
@@ -331,6 +391,9 @@ To test two clients on one PC, set `ed_keepEditorActive 1` in the Sandbox. Other
 | `odin_radio <off\|clean\|handheld\|military\|aircraft\|damaged>` | Sets the radio on all voices |
 | `odin_bitrate <low\|standard\|high\|veryhigh\|kbps> [room]` | Sets the bitrate of your voice in all rooms, or one |
 | `odin_mute [0\|1]` | Mutes the microphone |
+| `odin_hrtf [0\|1]` | HRTF on or off, for headphones |
+| `odin_reverb [0\|1]` | Voice reverb on or off |
+| `odin_reverb_map <environment> <room\|hall\|cave\|bathroom\|corridor\|outdoors\|underwater\|off>` | Gives a CRYENGINE audio environment a voice reverb |
 | `odin_devices`, `odin_set_input <index>`, `odin_set_output <index>` | Lists and selects devices. -1 is the system default |
 | `odin_set_key <key>` | Sets the access key. Not in Release builds |
 

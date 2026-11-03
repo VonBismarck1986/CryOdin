@@ -370,7 +370,10 @@ namespace Cry
 				return fVolume == other.fVolume && bMuted == other.bMuted && positioning == other.positioning && attenuation == other.attenuation
 					&& fMinDistance == other.fMinDistance && fMaxDistance == other.fMaxDistance && fRolloff == other.fRolloff
 					&& fDirectional == other.fDirectional && bOcclusion == other.bOcclusion
-					&& fOcclusionLowPassHz == other.fOcclusionLowPassHz && fOcclusionAttenuation == other.fOcclusionAttenuation && radio == other.radio;
+					&& fOcclusionLowPassHz == other.fOcclusionLowPassHz && fOcclusionAttenuation == other.fOcclusionAttenuation && radio == other.radio
+					&& bSpeakerDirection == other.bSpeakerDirection && fInnerAngle == other.fInnerAngle && fOuterAngle == other.fOuterAngle
+					&& fBehindVolume == other.fBehindVolume && fBehindLowPassHz == other.fBehindLowPassHz && bHrtf == other.bHrtf
+					&& fReverbSend == other.fReverbSend;
 			}
 
 			static void ReflectType(Schematyc::CTypeDesc<SCryOdinVoiceSettings>& desc)
@@ -388,6 +391,13 @@ namespace Cry
 				desc.AddMember(&SCryOdinVoiceSettings::bOcclusion, 'occl', "Occlusion", "Occlusion", "Muffles the voice when geometry is in the way", false);
 				desc.AddMember(&SCryOdinVoiceSettings::fOcclusionLowPassHz, 'oclp', "OcclusionLowPass", "Occlusion Low Pass (Hz)", "Low pass when fully occluded", 900.f);
 				desc.AddMember(&SCryOdinVoiceSettings::fOcclusionAttenuation, 'ocat', "OcclusionAttenuation", "Occlusion Attenuation", "Volume removed when fully occluded (0-1)", 0.5f);
+				desc.AddMember(&SCryOdinVoiceSettings::bSpeakerDirection, 'spkd', "SpeakerDirection", "Speaker Direction", "A speaker facing away is quieter and duller, using the entity's forward direction", true);
+				desc.AddMember(&SCryOdinVoiceSettings::fInnerAngle, 'inan', "InnerAngle", "Inner Angle", "Angle in degrees in front of the speaker where the voice is unchanged", 90.f);
+				desc.AddMember(&SCryOdinVoiceSettings::fOuterAngle, 'otan', "OuterAngle", "Outer Angle", "Angle in degrees in front of the speaker outside which the Behind values are used fully", 270.f);
+				desc.AddMember(&SCryOdinVoiceSettings::fBehindVolume, 'bhvo', "BehindVolume", "Behind Volume", "Volume (0-1) heard from behind the speaker", 0.6f);
+				desc.AddMember(&SCryOdinVoiceSettings::fBehindLowPassHz, 'bhlp', "BehindLowPass", "Behind Low Pass (Hz)", "How dull the voice is from behind the speaker", 4000.f);
+				desc.AddMember(&SCryOdinVoiceSettings::bHrtf, 'hrtf', "Hrtf", "Use HRTF", "Uses HRTF for this voice when the player turned HRTF on. Off keeps stereo panning", true);
+				desc.AddMember(&SCryOdinVoiceSettings::fReverbSend, 'rvsd', "ReverbSend", "Reverb Send", "How much of this voice reaches the reverb of the environment it's in (0-2)", 1.f);
 				desc.AddMember(&SCryOdinVoiceSettings::radio, 'radi', "Radio", "Radio", "Radio overlay", SCryOdinRadioSettings());
 			}
 
@@ -402,8 +412,92 @@ namespace Cry
 			bool  bOcclusion = false;
 			float fOcclusionLowPassHz = 900.f;
 			float fOcclusionAttenuation = 0.5f;
+			bool  bSpeakerDirection = true; //!< Quieter and duller from behind the speaker, see SetTransform's forward.
+			float fInnerAngle = 90.f;       //!< Degrees, the full width of the front where nothing changes.
+			float fOuterAngle = 270.f;      //!< Degrees, the full width outside which the Behind values apply.
+			float fBehindVolume = 0.6f;
+			float fBehindLowPassHz = 4000.f;
+			bool  bHrtf = true;             //!< Allows HRTF for this voice, see ICryOdinAudioSystem::SetHrtfEnabled.
+			float fReverbSend = 1.f;        //!< Scales what this voice sends to environment reverb, 0 for none.
 			SCryOdinRadioSettings radio;
 		};
+
+		//! Ready made rooms for the voice reverb.
+		enum class ECryOdinReverbPreset
+		{
+			Custom = 0, //!< Uses the values in SCryOdinReverbSettings.
+			Room,
+			Hall,
+			Cave,
+			Bathroom,
+			Corridor,
+			Outdoors,
+			Underwater
+		};
+
+		inline void ReflectType(Schematyc::CTypeDesc<ECryOdinReverbPreset>& desc)
+		{
+			desc.SetGUID("{73E8ED05-22B5-4F2C-AC05-47D94E0B94AA}"_cry_guid);
+			desc.SetLabel("Odin Reverb Preset");
+			desc.SetDefaultValue(ECryOdinReverbPreset::Room);
+			desc.AddConstant(ECryOdinReverbPreset::Custom, "Custom", "Custom");
+			desc.AddConstant(ECryOdinReverbPreset::Room, "Room", "Room");
+			desc.AddConstant(ECryOdinReverbPreset::Hall, "Hall", "Hall");
+			desc.AddConstant(ECryOdinReverbPreset::Cave, "Cave", "Cave");
+			desc.AddConstant(ECryOdinReverbPreset::Bathroom, "Bathroom", "Bathroom");
+			desc.AddConstant(ECryOdinReverbPreset::Corridor, "Corridor", "Corridor");
+			desc.AddConstant(ECryOdinReverbPreset::Outdoors, "Outdoors", "Outdoors");
+			desc.AddConstant(ECryOdinReverbPreset::Underwater, "Underwater", "Underwater");
+		}
+
+		//! How a space sounds, for voices in it. A preset other than Custom fills in the values.
+		struct SCryOdinReverbSettings
+		{
+			bool operator==(const SCryOdinReverbSettings& other) const
+			{
+				return preset == other.preset && fRoomSize == other.fRoomSize && fDamping == other.fDamping && fWidth == other.fWidth
+					&& fPreDelayMs == other.fPreDelayMs && fWetLevel == other.fWetLevel;
+			}
+			bool operator!=(const SCryOdinReverbSettings& other) const { return !(*this == other); }
+
+			static void ReflectType(Schematyc::CTypeDesc<SCryOdinReverbSettings>& desc)
+			{
+				desc.SetGUID("{3F485632-325D-4387-A731-2EEE8E99FC1C}"_cry_guid);
+				desc.SetLabel("Odin Reverb Settings");
+				desc.AddMember(&SCryOdinReverbSettings::preset, 'pres', "Preset", "Preset", "A ready made room. Custom uses the values below", ECryOdinReverbPreset::Room);
+				desc.AddMember(&SCryOdinReverbSettings::fRoomSize, 'size', "RoomSize", "Room Size", "0 to 1, how long the reverb rings", 0.5f);
+				desc.AddMember(&SCryOdinReverbSettings::fDamping, 'damp', "Damping", "Damping", "0 to 1, how fast the highs die away. Soft rooms damp more", 0.5f);
+				desc.AddMember(&SCryOdinReverbSettings::fWidth, 'widt', "Width", "Width", "0 to 1, stereo width of the reverb", 1.f);
+				desc.AddMember(&SCryOdinReverbSettings::fPreDelayMs, 'pred', "PreDelay", "Pre Delay (ms)", "0 to 200, the gap before the reverb starts. Bigger spaces have more", 10.f);
+				desc.AddMember(&SCryOdinReverbSettings::fWetLevel, 'wet', "WetLevel", "Wet Level", "0 to 1, how loud the reverb is", 0.25f);
+			}
+
+			ECryOdinReverbPreset preset = ECryOdinReverbPreset::Room;
+			float fRoomSize = 0.5f;
+			float fDamping = 0.5f;
+			float fWidth = 1.f;
+			float fPreDelayMs = 10.f;
+			float fWetLevel = 0.25f;
+		};
+
+		//! The values of a reverb preset. Custom returns the defaults. Starting points, tune them by ear.
+		inline SCryOdinReverbSettings GetCryOdinReverbPreset(ECryOdinReverbPreset preset)
+		{
+			SCryOdinReverbSettings settings;
+			settings.preset = preset;
+			switch (preset)
+			{
+			case ECryOdinReverbPreset::Room:       settings.fRoomSize = 0.5f;  settings.fDamping = 0.5f;  settings.fWidth = 1.f;  settings.fPreDelayMs = 8.f;  settings.fWetLevel = 0.25f; break;
+			case ECryOdinReverbPreset::Hall:       settings.fRoomSize = 0.85f; settings.fDamping = 0.4f;  settings.fWidth = 1.f;  settings.fPreDelayMs = 25.f; settings.fWetLevel = 0.3f;  break;
+			case ECryOdinReverbPreset::Cave:       settings.fRoomSize = 0.92f; settings.fDamping = 0.2f;  settings.fWidth = 1.f;  settings.fPreDelayMs = 40.f; settings.fWetLevel = 0.4f;  break;
+			case ECryOdinReverbPreset::Bathroom:   settings.fRoomSize = 0.6f;  settings.fDamping = 0.15f; settings.fWidth = 0.8f; settings.fPreDelayMs = 3.f;  settings.fWetLevel = 0.35f; break;
+			case ECryOdinReverbPreset::Corridor:   settings.fRoomSize = 0.7f;  settings.fDamping = 0.45f; settings.fWidth = 0.6f; settings.fPreDelayMs = 12.f; settings.fWetLevel = 0.3f;  break;
+			case ECryOdinReverbPreset::Outdoors:   settings.fRoomSize = 0.3f;  settings.fDamping = 0.7f;  settings.fWidth = 1.f;  settings.fPreDelayMs = 30.f; settings.fWetLevel = 0.08f; break;
+			case ECryOdinReverbPreset::Underwater: settings.fRoomSize = 0.8f;  settings.fDamping = 0.95f; settings.fWidth = 0.5f; settings.fPreDelayMs = 5.f;  settings.fWetLevel = 0.5f;  break;
+			default: break;
+			}
+			return settings;
+		}
 
 		//! Ready made bitrates for the voice sent to a room. Each listener receives this much per speaker.
 		enum class ECryOdinVoiceQuality

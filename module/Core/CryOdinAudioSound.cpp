@@ -73,23 +73,82 @@ namespace Cry
 				voice.fDirectional = SanitizeFloat(voice.fDirectional, defaults.fDirectional, 0.f, 1.f);
 				voice.fOcclusionLowPassHz = SanitizeFloat(voice.fOcclusionLowPassHz, defaults.fOcclusionLowPassHz, 20.f, 20000.f);
 				voice.fOcclusionAttenuation = SanitizeFloat(voice.fOcclusionAttenuation, defaults.fOcclusionAttenuation, 0.f, 1.f);
+				voice.fInnerAngle = SanitizeFloat(voice.fInnerAngle, defaults.fInnerAngle, 0.f, 360.f);
+				voice.fOuterAngle = SanitizeFloat(voice.fOuterAngle, defaults.fOuterAngle, voice.fInnerAngle, 360.f);
+				voice.fBehindVolume = SanitizeFloat(voice.fBehindVolume, defaults.fBehindVolume, 0.f, 1.f);
+				voice.fBehindLowPassHz = SanitizeFloat(voice.fBehindLowPassHz, defaults.fBehindLowPassHz, 20.f, 20000.f);
+				voice.fReverbSend = SanitizeFloat(voice.fReverbSend, defaults.fReverbSend, 0.f, 2.f);
 				voice.radio = SanitizeRadio(voice.radio);
 				return voice;
+			}
+
+			// The same curves as miniaudio's, which now only pans. Done here so HRTF and the reverb can use them.
+			float GetDistanceGain(const SCryOdinVoiceSettings& settings, float fDistance)
+			{
+				const float fMin = settings.fMinDistance;
+				const float fMax = settings.fMaxDistance;
+				if (settings.attenuation == ECryOdinAttenuationModel::None || fMin >= fMax)
+				{
+					return 1.f;
+				}
+
+				const float fClamped = crymath::clamp(fDistance, fMin, fMax);
+				float fGain = 1.f;
+				switch (settings.attenuation)
+				{
+				case ECryOdinAttenuationModel::Inverse:
+					fGain = fMin / (fMin + settings.fRolloff * (fClamped - fMin));
+					break;
+				case ECryOdinAttenuationModel::Linear:
+					fGain = 1.f - settings.fRolloff * (fClamped - fMin) / (fMax - fMin);
+					break;
+				case ECryOdinAttenuationModel::Exponential:
+					fGain = powf(fClamped / fMin, -settings.fRolloff);
+					break;
+				default:
+					break;
+				}
+				return crymath::clamp(fGain, 0.f, 1.f);
+			}
+
+			// 0 inside the inner angle, 1 outside the outer one. The angles are full widths, as in miniaudio.
+			float GetBehindAmount(const SCryOdinVoiceSettings& settings, const Vec3& speakerForward, const Vec3& toListener)
+			{
+				if (!settings.bSpeakerDirection || speakerForward.GetLengthSquared() < 1e-6f)
+				{
+					return 0.f;
+				}
+
+				const float fCos = crymath::clamp(speakerForward.GetNormalized().Dot(toListener), -1.f, 1.f);
+				const float fAngle = acosf(fCos) * (180.f / 3.14159265f);
+				const float fInner = settings.fInnerAngle * 0.5f;
+				const float fOuter = settings.fOuterAngle * 0.5f;
+				if (fAngle <= fInner)
+				{
+					return 0.f;
+				}
+				if (fAngle >= fOuter || fOuter - fInner < 1e-3f)
+				{
+					return 1.f;
+				}
+				return (fAngle - fInner) / (fOuter - fInner);
 			}
 
 			void VoiceNodeProcess(ma_node* pNode, const float** ppFramesIn, ma_uint32* pFrameCountIn, float** ppFramesOut, ma_uint32* pFrameCountOut)
 			{
 				SCryOdinVoiceNode* pVoiceNode = static_cast<SCryOdinVoiceNode*>(pNode);
-				pVoiceNode->pSound->ProcessAudio(ppFramesIn[0], ppFramesOut[0], *pFrameCountOut);
+				pVoiceNode->pSound->ProcessAudio(ppFramesIn[0], ppFramesOut, *pFrameCountOut);
 			}
+
+			constexpr ma_uint32 kVoiceOutputBuses = 1 + kCryOdinReverbSlots;
 
 			ma_node_vtable g_voiceNodeVtable =
 			{
 				VoiceNodeProcess,
-				nullptr, // onGetRequiredInputFrameCount
-				1,       // Input buses
-				1,       // Output buses
-				0        // Flags
+				nullptr,           // onGetRequiredInputFrameCount
+				1,                 // Input buses
+				kVoiceOutputBuses, // The voice, then a send to each reverb slot
+				0                  // Flags
 			};
 		}
 
@@ -111,6 +170,7 @@ namespace Cry
 			m_radio.Init(pAllocation);
 			m_radio.Configure(m_rtSettings.radio);
 			m_occlusionFilter.Init(pAllocation);
+			m_behindFilter.Init(pAllocation);
 
 			ma_result result = odin_data_source_init(m_pDecoder->pDecoder, this, &m_dataSource);
 			m_bDataSourceReady = result == MA_SUCCESS;
@@ -120,11 +180,16 @@ namespace Cry
 				return;
 			}
 
-			const ma_uint32 channels[1] = { kOdinOutputChannels };
+			const ma_uint32 inputChannels[1] = { kOdinOutputChannels };
+			ma_uint32 outputChannels[kVoiceOutputBuses];
+			for (ma_uint32& channelCount : outputChannels)
+			{
+				channelCount = kOdinOutputChannels;
+			}
 			ma_node_config nodeConfig = ma_node_config_init();
 			nodeConfig.vtable = &g_voiceNodeVtable;
-			nodeConfig.pInputChannels = channels;
-			nodeConfig.pOutputChannels = channels;
+			nodeConfig.pInputChannels = inputChannels;
+			nodeConfig.pOutputChannels = outputChannels;
 
 			result = ma_node_init(ma_engine_get_node_graph(pEngine), &nodeConfig, pAllocation, &m_node);
 			m_bNodeReady = result == MA_SUCCESS;
@@ -134,6 +199,13 @@ namespace Cry
 				return;
 			}
 			ma_node_attach_output_bus(&m_node, 0, ma_engine_get_endpoint(pEngine), 0);
+			for (int slot = 0; slot < kCryOdinReverbSlots; ++slot)
+			{
+				if (ma_node* pReverb = m_audioSystem.GetReverbSlotNode(slot))
+				{
+					ma_node_attach_output_bus(&m_node, static_cast<ma_uint32>(1 + slot), pReverb, 0);
+				}
+			}
 
 			// Without pitch the decoder is read at exactly real time. A live voice can't be sped up
 			// or slowed down, which rules out pitch and doppler.
@@ -154,6 +226,7 @@ namespace Cry
 			ApplySpatialSettings();
 
 			m_audioSystem.GetOcclusion().AddSound(this);
+			m_audioSystem.RegisterSound(this);
 
 			StartSound();
 		}
@@ -161,6 +234,7 @@ namespace Cry
 		CCryOdinSound::~CCryOdinSound()
 		{
 			m_audioSystem.GetOcclusion().RemoveSound(this);
+			m_audioSystem.UnregisterSound(this);
 
 			const ma_allocation_callbacks* pAllocation = &m_audioSystem.GetAllocationCallbacks();
 
@@ -179,6 +253,7 @@ namespace Cry
 			}
 
 			m_occlusionFilter.Uninit(pAllocation);
+			m_behindFilter.Uninit(pAllocation);
 			m_radio.Uninit(pAllocation);
 		}
 
@@ -246,8 +321,56 @@ namespace Cry
 			ma_sound_set_position(&m_sound, position.x, position.y, position.z);
 			if (IsFiniteVec3(forward))
 			{
+				m_forward = forward;
 				ma_sound_set_direction(&m_sound, forward.x, forward.y, forward.z);
 			}
+		}
+
+		bool CCryOdinSound::WantsReverb() const
+		{
+			return m_bSoundReady && IsSpatial(m_settings) && m_settings.fReverbSend > 0.f;
+		}
+
+		void CCryOdinSound::UpdateSpatial(const SCryOdinListenerFrame& listener, bool bHrtfWanted, const float (&reverbSends)[kCryOdinReverbSlots])
+		{
+			if (!m_bSoundReady)
+			{
+				return;
+			}
+
+			SSpatialState state;
+			state.bValid = true;
+			const bool bSpatial = IsSpatial(m_settings);
+			if (bSpatial)
+			{
+				const Vec3 offset = m_position - listener.position;
+				const float fDistance = offset.GetLength();
+				state.fDistanceGain = GetDistanceGain(m_settings, fDistance);
+
+				if (fDistance > 1e-4f)
+				{
+					const Vec3 toSource = offset / fDistance;
+					state.direction = Vec3(toSource.Dot(listener.right), toSource.Dot(listener.forward), toSource.Dot(listener.up));
+					state.fBehind = GetBehindAmount(m_settings, m_forward, -toSource);
+				}
+				state.bHrtf = bHrtfWanted && m_settings.bHrtf;
+
+				// The reverb falls off more slowly than the voice, so a far voice sounds farther away.
+				const float fSendScale = m_settings.fReverbSend * sqrtf(state.fDistanceGain);
+				for (int slot = 0; slot < kCryOdinReverbSlots; ++slot)
+				{
+					state.reverbSends[slot] = reverbSends[slot] * fSendScale;
+				}
+			}
+
+			// HRTF places the voice itself, so miniaudio must stop panning it.
+			if (state.bHrtf != m_bHrtfApplied)
+			{
+				m_bHrtfApplied = state.bHrtf;
+				ApplySpatialSettings();
+			}
+
+			m_spatialMailbox.Write(state);
 		}
 
 		void CCryOdinSound::SetRadioEnabled(bool bEnabled)
@@ -336,24 +459,14 @@ namespace Cry
 				return;
 			}
 
-			// All of these are atomic in miniaudio. Volume is applied in ProcessAudio.
-			// A rolloff of 0 means no attenuation with panning kept, miniaudio's "none" model also turns off panning.
-			const bool bAttenuate = m_settings.attenuation != ECryOdinAttenuationModel::None;
-			ma_attenuation_model model = ma_attenuation_model_inverse;
-			if (m_settings.attenuation == ECryOdinAttenuationModel::Linear)
-			{
-				model = ma_attenuation_model_linear;
-			}
-			else if (m_settings.attenuation == ECryOdinAttenuationModel::Exponential)
-			{
-				model = ma_attenuation_model_exponential;
-			}
-
-			ma_sound_set_spatialization_enabled(&m_sound, IsSpatial(m_settings) ? MA_TRUE : MA_FALSE);
-			ma_sound_set_attenuation_model(&m_sound, model);
+			// All of these are atomic in miniaudio. Volume and distance are applied in ProcessAudio, so
+			// miniaudio only pans: a rolloff of 0 keeps panning with no attenuation, while its "none"
+			// model would turn off panning too. With HRTF it doesn't pan either.
+			ma_sound_set_spatialization_enabled(&m_sound, (IsSpatial(m_settings) && !m_bHrtfApplied) ? MA_TRUE : MA_FALSE);
+			ma_sound_set_attenuation_model(&m_sound, ma_attenuation_model_inverse);
 			ma_sound_set_min_distance(&m_sound, m_settings.fMinDistance);
 			ma_sound_set_max_distance(&m_sound, m_settings.fMaxDistance);
-			ma_sound_set_rolloff(&m_sound, bAttenuate ? m_settings.fRolloff : 0.f);
+			ma_sound_set_rolloff(&m_sound, 0.f);
 			ma_sound_set_directional_attenuation_factor(&m_sound, m_settings.fDirectional);
 
 			// Rays only keep this up to date while the voice wants them.
@@ -391,13 +504,72 @@ namespace Cry
 			}
 		}
 
-		void CCryOdinSound::ProcessAudio(const float* pIn, float* pOut, uint32 frameCount)
+		void CCryOdinSound::ProcessAudio(const float* pIn, float** ppOut, uint32 frameCount)
 		{
 			CCryOdinRtScope rtScope(m_rtSection);
 
 			UpdateRealtimeSettings();
+			m_spatialMailbox.TryRead(m_rtSpatial, m_spatialVersion);
 
-			memcpy(pOut, pIn, frameCount * kOdinOutputChannels * sizeof(float));
+			const bool bSpatial = IsSpatial(m_rtSettings);
+			const bool bHrtf = bSpatial && m_rtSpatial.bHrtf;
+			float* pOut = ppOut[0];
+
+			// The reverb sends: the mono voice, before speaker direction and occlusion, as a room is still
+			// heard around a wall. Ramped, so a voice walking into a space doesn't click. Panning lowers the
+			// sum of a voice in front, so it gets the same make up as the voice.
+			const float fPanMakeup = (bSpatial && !bHrtf) ? GetSpatialMakeupGain(m_rtSettings) : 1.f;
+			const float fSendVolume = (m_rtSettings.bMuted ? 0.f : m_rtSettings.fVolume) * fPanMakeup;
+			const float fFrameStep = 1.f / static_cast<float>(std::max<uint32>(frameCount, 1));
+			for (int slot = 0; slot < kCryOdinReverbSlots; ++slot)
+			{
+				float* pSend = ppOut[1 + slot];
+				const float fTarget = bSpatial ? m_rtSpatial.reverbSends[slot] * fSendVolume : 0.f;
+				const float fStart = m_fCurrentSends[slot];
+				if (fTarget <= 0.f && fStart <= 0.f)
+				{
+					memset(pSend, 0, frameCount * kOdinOutputChannels * sizeof(float));
+					continue;
+				}
+				for (uint32 frame = 0; frame < frameCount; ++frame)
+				{
+					const float fGain = fStart + (fTarget - fStart) * static_cast<float>(frame + 1) * fFrameStep;
+					const float fMono = 0.5f * (pIn[frame * 2] + pIn[frame * 2 + 1]) * fGain;
+					pSend[frame * 2] = fMono;
+					pSend[frame * 2 + 1] = fMono;
+				}
+				m_fCurrentSends[slot] = fTarget;
+			}
+
+			if (bHrtf && !m_bRtHrtf)
+			{
+				m_hrtf.Reset();
+			}
+			m_bRtHrtf = bHrtf;
+
+			if (bHrtf)
+			{
+				m_hrtf.Process(pIn, pOut, frameCount, m_rtSpatial.direction);
+			}
+			else
+			{
+				memcpy(pOut, pIn, frameCount * kOdinOutputChannels * sizeof(float));
+			}
+
+			// Distance before the effects, as miniaudio did when it attenuated, so gates and compressors
+			// see the same level as before.
+			const float fDistanceTarget = bSpatial ? (m_rtSpatial.bValid ? m_rtSpatial.fDistanceGain : 0.f) : 1.f;
+			const float fDistanceStart = m_fCurrentDistanceGain;
+			if (fDistanceTarget != 1.f || fDistanceStart != 1.f)
+			{
+				for (uint32 frame = 0; frame < frameCount; ++frame)
+				{
+					const float fDistanceGain = fDistanceStart + (fDistanceTarget - fDistanceStart) * static_cast<float>(frame + 1) * fFrameStep;
+					pOut[frame * 2] *= fDistanceGain;
+					pOut[frame * 2 + 1] *= fDistanceGain;
+				}
+			}
+			m_fCurrentDistanceGain = fDistanceTarget;
 
 			if (const std::shared_ptr<const TEffectList> pEffects = std::atomic_load(&m_pEffects))
 			{
@@ -413,11 +585,18 @@ namespace Cry
 			m_fCurrentOcclusion += (fOcclusionTarget - m_fCurrentOcclusion) * fSmoothing;
 			m_occlusionFilter.Process(pOut, frameCount, m_fCurrentOcclusion, m_rtSettings.fOcclusionLowPassHz);
 
+			// Facing away from the listener, eased like occlusion.
+			const float fBehindTarget = bSpatial ? m_rtSpatial.fBehind : 0.f;
+			m_fCurrentBehind += (fBehindTarget - m_fCurrentBehind) * fSmoothing;
+			m_behindFilter.Process(pOut, frameCount, m_fCurrentBehind, m_rtSettings.fBehindLowPassHz);
+
 			float fTargetGain = m_rtSettings.bMuted ? 0.f : m_rtSettings.fVolume;
 			fTargetGain *= 1.f - m_rtSettings.fOcclusionAttenuation * m_fCurrentOcclusion;
-			if (IsSpatial(m_rtSettings))
+			if (bSpatial)
 			{
-				fTargetGain *= GetSpatialMakeupGain(m_rtSettings);
+				fTargetGain *= 1.f + (m_rtSettings.fBehindVolume - 1.f) * m_fCurrentBehind;
+				// Panning lowers a voice in front, HRTF doesn't.
+				fTargetGain *= fPanMakeup;
 			}
 
 			// Ramp the volume over the block, so that changes and mute don't click.
