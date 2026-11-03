@@ -1,0 +1,137 @@
+option(PLUGIN_Odin "Enable the Odin VOIP plugin" ON)
+if (NOT PLUGIN_Odin)
+	return()
+endif()
+
+set(ODIN_SDK "${SDK_DIR}/Odin" CACHE PATH "Odin sdk path")
+
+set(ODIN_ACCESS_KEY "" CACHE STRING "Access key from Odin website for testing, it's only compiled into Debug and Profile builds. If you don't have one CryOdin will generate a temp one for you")
+
+if(NOT EXISTS ${ODIN_SDK})
+	message("Odin sdk path not found at: ${ODIN_SDK}")
+	return()
+endif()
+
+
+start_sources()
+sources_platform(ALL)
+add_sources("CryOdin.cpp"
+	SOURCE_GROUP "Root"
+	"Plugin.cpp"
+	"Plugin.h"
+	"StdAfx.h"
+)
+
+add_sources("CryOdin_Interface.cpp"
+	SOURCE_GROUP "Interface"
+	"../interface/ICryOdin.h"
+	"../interface/ICryOdinTypes.h"
+	"../interface/ICryOdinRoom.h"
+	"../interface/ICryOdinSocket.h"
+	"../interface/ICryOdinUser.h"
+	"../interface/ICryOdinAudioDevices.h"
+	"../interface/ICryOdinAudioEffect.h"
+	"../interface/ICryOdinAudioSystem.h"
+	"../interface/ICryOdinAudioSound.h"
+	"../interface/OdinComponents/CryOdinComponentListener.h"
+	"../interface/OdinComponents/CryOdinComponentSound.h"
+	"../interface/OdinComponents/CryOdinUserComponent.h"
+	"../interface/OdinComponents/CryOdinNetworkComponent.h"
+)
+
+add_sources("CryOdin_Core.cpp"
+	SOURCE_GROUP "Core"
+	"Core/CryOdin.cpp"
+	"Core/CryOdin.h"
+	"Core/CryOdinRoom.cpp"
+	"Core/CryOdinRoom.h"
+	"Core/CryOdinInput.cpp"
+	"Core/CryOdinInput.h"
+	"Core/CryOdinUser.cpp"
+	"Core/CryOdinUser.h"
+	"Core/CryOdinAudioDevices.cpp"
+	"Core/CryOdinAudioDevices.h"
+	"Core/CryOdinAudioSound.cpp"
+	"Core/CryOdinAudioSound.h"
+	"Core/CryOdinAudioDataSource.cpp"
+	"Core/CryOdinAudioDataSource.h"
+	"Core/CryOdinAudioEffects.cpp"
+	"Core/CryOdinAudioEffects.h"
+	"Core/CryOdinAudioSystem.cpp"
+	"Core/CryOdinAudioSystem.h"
+	"Core/CryOdinAudioOcclusion.cpp"
+	"Core/CryOdinAudioOcclusion.h"
+)
+
+add_sources("CryOdin_Components.cpp"
+	SOURCE_GROUP "Components"
+	"Components/CryOdinUserComponent.cpp"
+	"Components/CryOdinComponentSound.cpp"
+	"Components/CryOdinComponentListener.cpp"
+	"Components/CryOdinNetworkComponent.cpp"
+)
+
+add_sources("CryOdin_Utils.cpp"
+	SOURCE_GROUP "Utils"
+	"Utils/MiniAudioHelpers.h"
+	"Utils/OdinHelpers.h"
+	"Utils/OdinJson.h"
+	"Utils/OdinRealtime.h"
+)
+
+add_sources("NoUberFile"
+	SOURCE_GROUP "Root"
+		"StdAfx.cpp"
+		"resource.h"
+)
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/CVarOverrides.h")
+    add_sources("NoUberFile"
+        PROJECTS Game
+        SOURCE_GROUP "Root"
+            "CVarOverrides.h"
+    )
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/EngineDefineOverrides.h")
+    add_sources("NoUberFile"
+        PROJECTS Game
+        SOURCE_GROUP "Root"
+            "EngineDefineOverrides.h"
+    )
+endif()
+end_sources()
+
+
+CryEngineModule(CryOdin PCH "StdAfx.cpp" SOLUTION_FOLDER "CryPlugins")
+
+target_include_directories(${THIS_PROJECT}
+ PRIVATE
+  "${CRYENGINE_DIR}/Code/CryEngine/CryCommon"
+  "${CRYENGINE_DIR}/Code/CryEngine/CryAction"
+  "${CRYENGINE_DIR}/Code/CryEngine/CrySchematyc/Core/Interface"
+  "${CRYENGINE_DIR}/Code/CryPlugins/CryDefaultEntities/Module"
+  "${ODIN_SDK}/include"
+  "../include"
+ PUBLIC
+  ../interface
+)
+
+unset(OdinLib CACHE)
+find_library(OdinLib NAMES odin PATHS "${ODIN_SDK}/bin/windows-x86_64")
+unset(OdinCryptoLib CACHE)
+find_library(OdinCryptoLib NAMES odin_crypto PATHS "${ODIN_SDK}/bin/windows-x86_64")
+target_link_libraries(${THIS_PROJECT} PRIVATE "${OdinLib}" "${OdinCryptoLib}")
+
+#Enable cpp 17 support
+set_target_properties(${THIS_PROJECT} PROPERTIES CXX_STANDARD 17)
+#Enable edit and continue support
+target_compile_options( ${THIS_PROJECT} PRIVATE /ZI )
+
+# Only defined when set, and never used by Release builds.
+if(NOT "${ODIN_ACCESS_KEY}" STREQUAL "")
+	target_compile_definitions(${THIS_PROJECT} PRIVATE "$<$<NOT:$<CONFIG:Release>>:ODIN_ACCESS_KEY=\"${ODIN_ACCESS_KEY}\">")
+endif()
+
+deploy_runtime_files(${ODIN_SDK}/bin/windows-x86_64/odin.dll)
+deploy_runtime_files(${ODIN_SDK}/bin/windows-x86_64/odin_crypto.dll)

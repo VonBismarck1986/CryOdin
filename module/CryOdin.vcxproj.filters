@@ -1,0 +1,166 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\StdAfx.cpp" />
+    <ClCompile Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\CryOdin.cpp">
+      <Filter>UBER FILES</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\CryOdin_Interface.cpp">
+      <Filter>UBER FILES</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\CryOdin_Core.cpp">
+      <Filter>UBER FILES</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\CryOdin_Components.cpp">
+      <Filter>UBER FILES</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\CryOdin_Utils.cpp">
+      <Filter>UBER FILES</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Plugin.cpp" />
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Plugin.h" />
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\StdAfx.h" />
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdin.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdinTypes.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdinRoom.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdinSocket.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdinUser.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdinAudioDevices.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdinAudioEffect.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdinAudioSystem.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\ICryOdinAudioSound.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\OdinComponents\CryOdinComponentListener.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\OdinComponents\CryOdinComponentSound.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\interface\OdinComponents\CryOdinUserComponent.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdin.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdin.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinRoom.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinRoom.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinUser.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinUser.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioDevices.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioDevices.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioSound.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioSound.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioDataSource.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioDataSource.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioEffects.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioEffects.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioSystem.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioSystem.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioOcclusion.cpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Core\CryOdinAudioOcclusion.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Components\CryOdinUserComponent.cpp">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Components\CryOdinComponentSound.cpp">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Components\CryOdinComponentListener.cpp">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Utils\MiniAudioHelpers.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Utils\OdinHelpers.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Utils\OdinJson.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\Utils\OdinRealtime.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="F:\Cry\CRYENGINE_Source\Code\CryPlugins\CryOdin\Module\CryOdin.autogen.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Components">
+      <UniqueIdentifier>{B2236E14-4057-34FC-A8A7-391519E5E8A7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{6C43A0D1-F3A7-3E12-A358-74283654FF17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{BB2A23F4-7D7F-34B6-BA66-8E7470147412}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{B80F0F25-D87A-3F03-B028-8874F94399DC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UBER FILES">
+      <UniqueIdentifier>{4066B6D3-3277-39A2-BDE2-B3BD5796D103}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{1CC79813-3DF0-3B16-9ED1-4D122B129B6A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

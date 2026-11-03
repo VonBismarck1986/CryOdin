@@ -1,0 +1,50 @@
+#pragma once
+
+#include <CrySystem/ICryPlugin.h>
+#include "CrySystem/ISystem.h"
+
+#include "ICryOdin.h"
+
+namespace Cry
+{
+	namespace Odin
+	{
+		class CCryOdin;
+
+		class CCryOdinPlugin final
+			: public Cry::Odin::ICryOdinPlugin
+			, public ISystemEventListener
+		{
+		public:
+
+			CRYINTERFACE_BEGIN()
+				CRYINTERFACE_ADD(Cry::Odin::ICryOdinPlugin)
+				CRYINTERFACE_ADD(Cry::IEnginePlugin)
+			CRYINTERFACE_END()
+
+			CRYGENERATE_SINGLETONCLASS_GUID(CCryOdinPlugin, "CryOdin", "{629B0B36-6293-4A38-B2CC-6EDC04B41EFA}"_cry_guid)
+
+
+			PLUGIN_FLOWNODE_REGISTER
+			PLUGIN_FLOWNODE_UNREGISTER;
+
+			virtual ~CCryOdinPlugin();
+
+			virtual const char* GetName() const override { return "CryOdin"; }
+
+			virtual const char* GetCategory() const override { return "Audio"; }
+
+			virtual ICryOdin* GetOdin() const override;
+
+			//! This is called to initialize the new plugin.
+			virtual bool Initialize(SSystemGlobalEnvironment& env, const SSystemInitParams& initParams) override;
+
+			virtual void MainUpdate(float delta) override;
+
+			virtual void OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lparam) override;
+
+		private:
+			std::unique_ptr<CCryOdin> m_pOdin;
+		};
+	}
+}
